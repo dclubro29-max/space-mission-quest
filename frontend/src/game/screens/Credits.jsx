@@ -58,6 +58,7 @@ export default function Credits({ result, onRestart }) {
             <div className="level-chip mx-auto">{result.outcome === "win" ? "MISSION SUCCESS" : "MISSION FAILED"}</div>
             <div className="text-center font-display text-5xl text-navy mt-3" data-testid="final-score">{result.score}</div>
             <p className="text-center font-bold text-navy/70">points for cadet {result.name}</p>
+            <p className="text-center text-sm font-bold text-navy/70 mt-4" data-testid="final-creators">Created by {CREATORS.join(", ")}</p>
             <h3 className="font-display text-navy mt-6 flex items-center gap-2"><Trophy className="text-orange" /> Top cadets</h3>
             <ol className="mt-2 space-y-1" data-testid="leaderboard">
               {board.map((s, i) => (

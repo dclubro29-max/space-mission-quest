@@ -60,7 +60,7 @@ export default function Puzzle({ onDone }) {
         </div>
         <div className="puzzle-board" data-testid="puzzle-board">
           {peek || solved ? (
-            <motion.img src="/game/puzzle.png" alt="Mission poster" className="w-full h-full object-cover"
+            <motion.img src="/game/puzzle.png" alt="Mission poster" className="w-full h-full object-cover col-span-4 row-span-3"
               initial={{ opacity: 0.4 }} animate={{ opacity: 1, scale: solved ? [1, 1.03, 1] : 1 }} />
           ) : order.map((id, i) => (
             <div key={i} data-testid={`puzzle-piece-${i}`} draggable

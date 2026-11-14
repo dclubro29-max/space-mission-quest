@@ -31,7 +31,7 @@ export default function Title({ onStart }) {
         </motion.div>
         <motion.div className="relative flex justify-center" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: "spring" }}>
           <img src="/game/bob.png" alt="B.O.B." className="w-64 sm:w-80 lg:w-[26rem] bob-float drop-shadow-2xl" />
-          <div className="bubble bubble-left absolute top-0 right-0 md:-right-4 max-w-[13rem] text-base">
+          <div className="bubble bubble-left absolute top-0 right-0 md:-right-4 w-52 text-base">
             Oh great. Another human. Press Start, I guess.
           </div>
         </motion.div>

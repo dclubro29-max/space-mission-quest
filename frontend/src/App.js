@@ -1,55 +1,72 @@
-import { useEffect } from "react";
+import { useCallback, useMemo, useState } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
+import { Volume2, VolumeX } from "lucide-react";
+import Dialogue from "@/game/Dialogue";
+import { LevelCard } from "@/game/ui";
+import { chars } from "@/game/data";
+import { SCRIPTS } from "@/game/story";
+import { setMuted } from "@/game/sound";
+import Title from "@/game/screens/Title";
+import DoorGag from "@/game/screens/DoorGag";
+import Training from "@/game/screens/Training";
+import Puzzle from "@/game/screens/Puzzle";
+import Quiz from "@/game/screens/Quiz";
+import Cargo from "@/game/screens/Cargo";
+import Launch from "@/game/screens/Launch";
+import Repair from "@/game/screens/Repair";
+import WinEnding from "@/game/screens/WinEnding";
+import LoseEnding from "@/game/screens/LoseEnding";
+import Colony from "@/game/screens/Colony";
+import Credits from "@/game/screens/Credits";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    // The marker attribute below lets the platform probe detect the stock splash — remove it with this page
-    <div data-emergent-splash>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+const INITIAL = { stage: "title", name: "Alex", bonks: 0, moves: 0, quiz: 0, repair: null };
 
 function App() {
+  const [g, setG] = useState(INITIAL);
+  const [mute, setMute] = useState(false);
+  const go = useCallback((stage, extra = {}) => setG((s) => ({ ...s, ...extra, stage })), []);
+  const cast = useMemo(() => chars(g.name), [g.name]);
+  const dlg = (key, nextStage) => (
+    <Dialogue key={key} testid={`dialogue-${key}`} scene={SCRIPTS[key](g.name, g)} characters={cast} onDone={() => go(nextStage)} />
+  );
+
+  const result = () => {
+    const r = g.repair || { win: false, fixed: 0, lives: 0 };
+    const score = g.quiz * 100 + Math.max(0, 600 - g.moves * 10) + r.fixed * 150 + r.lives * 200 + (r.win ? 1000 : 0);
+    return { name: g.name.slice(0, 24), score, outcome: r.win ? "win" : "lose", quiz_correct: g.quiz, lives_left: r.lives };
+  };
+
+  const screens = {
+    title: () => <Title onStart={(name) => go("intro", { ...INITIAL, name })} />,
+    intro: () => dlg("intro", "door"),
+    door: () => <DoorGag onDone={(bonks) => go("training", { bonks })} />,
+    training: () => dlg("training", "cards"),
+    cards: () => <Training onDone={() => go("prePuzzle")} />,
+    prePuzzle: () => dlg("prePuzzle", "lvl1"),
+    lvl1: () => <LevelCard n={1} title="Mission Puzzle" subtitle="Put the pieces of the mission poster back together." onStart={() => go("puzzle")} />,
+    puzzle: () => <Puzzle onDone={(moves) => go("preQuiz", { moves })} />,
+    preQuiz: () => dlg("preQuiz", "lvl2"),
+    lvl2: () => <LevelCard n={2} title="The Exam" subtitle="Answer at least 7 of 10 questions about your spacecraft." onStart={() => go("quiz")} />,
+    quiz: () => <Quiz onDone={(quiz) => go("postQuiz", { quiz })} />,
+    postQuiz: () => dlg("postQuiz", "cargo"),
+    cargo: () => <Cargo onDone={() => go("preLaunch")} />,
+    preLaunch: () => dlg("preLaunch", "launch"),
+    launch: () => <Launch onDone={() => go("lvl3")} />,
+    lvl3: () => <LevelCard n={3} title="Problems & Solutions" subtitle="Malfunctions ahead! Pick the right component to repair. 3 mistakes and... BOOM." onStart={() => go("repair")} />,
+    repair: () => <Repair onDone={(repair) => go(repair.win ? "win" : "lose", { repair })} />,
+    win: () => <WinEnding onDone={() => go("colony")} />,
+    lose: () => <LoseEnding name={g.name} onDone={() => go("colony")} />,
+    colony: () => <Colony win={g.repair?.win} name={g.name} onDone={() => go("credits")} />,
+    credits: () => <Credits result={result()} onRestart={() => go("title", INITIAL)} />,
+  };
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+    <div className="App" data-testid="game-root">
+      <button data-testid="mute-toggle-btn" className="mute-btn" aria-label="Toggle sound"
+        onClick={() => { setMuted(!mute); setMute(!mute); }}>
+        {mute ? <VolumeX size={20} /> : <Volume2 size={20} />}
+      </button>
+      {screens[g.stage]()}
     </div>
   );
 }

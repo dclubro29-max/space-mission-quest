@@ -13,6 +13,11 @@ Cartoon game for middle-school kids, in English. B.O.B., a sarcastic robot, intr
 - L1 4x3 swap puzzle (tap/drag, peek), L2 quiz with 10 of 15 questions (7 needed to pass, retry on fail), cargo check (mass limit of 100 kg), launch countdown
 - L3: 8 malfunctions, 3 lives; win and lose endings; colony screen; credits roll + leaderboard; mute button
 
+## Iteration 2 (2026-06)
+- Bigger, centered rocket on the launch screen
+- Bad ending: large glowing flower, 5 emotional B.O.B. lines, tears
+- Good ending: new Explore screen (7 places on the Mars/Gratziella World map with facts and B.O.B. jokes; 4 needed before meeting the colony)
+
 ## Backlog
 - P1: keyboard play for the puzzle, save progress when the page reloads, retry Level 3 without starting over, ask before publishing a name to the leaderboard, check scores on the server
 - P2: team mode (up to 4 players), more mission trade-offs (budget and power), difficulty levels

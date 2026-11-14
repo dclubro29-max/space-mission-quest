@@ -16,6 +16,7 @@ import Launch from "@/game/screens/Launch";
 import Repair from "@/game/screens/Repair";
 import WinEnding from "@/game/screens/WinEnding";
 import LoseEnding from "@/game/screens/LoseEnding";
+import Explore from "@/game/screens/Explore";
 import Colony from "@/game/screens/Colony";
 import Credits from "@/game/screens/Credits";
 
@@ -54,7 +55,8 @@ function App() {
     launch: () => <Launch onDone={() => go("lvl3")} />,
     lvl3: () => <LevelCard n={3} title="Problems & Solutions" subtitle="Malfunctions ahead! Pick the right component to repair. 3 mistakes and... BOOM." onStart={() => go("repair")} />,
     repair: () => <Repair onDone={(repair) => go(repair.win ? "win" : "lose", { repair })} />,
-    win: () => <WinEnding onDone={() => go("colony")} />,
+    win: () => <WinEnding onDone={() => go("explore")} />,
+    explore: () => <Explore name={g.name} onDone={() => go("colony")} />,
     lose: () => <LoseEnding name={g.name} onDone={() => go("colony")} />,
     colony: () => <Colony win={g.repair?.win} name={g.name} onDone={() => go("credits")} />,
     credits: () => <Credits result={result()} onRestart={() => go("title", INITIAL)} />,

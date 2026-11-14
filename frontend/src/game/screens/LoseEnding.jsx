@@ -34,22 +34,39 @@ const Drift = ({ n }) => (
   </Scene>
 );
 
-const Grave = ({ n, stoopid, onDone }) => (
+const sadLines = (n) => [
+  "B.O.B. drifted alone for 7 long months... and finally landed on Mars.",
+  `B.O.B.: "Hey, cadet ${n}. I brought you something. It's a flower. I grew it myself. Don't make it weird."`,
+  `B.O.B.: "I made fun of you every single day. Do you know why? Because you were my favorite human."`,
+  `B.O.B.: "Who will bump into doors now? Who will bring potatoes to space? It's too quiet without you."`,
+  `B.O.B.: "My eyes are leaking. It's just space dust. Robots don't cry... Okay. Maybe a little."`,
+];
+export const SAD_MS = 4200;
+
+const Grave = ({ n, stoopid, onDone }) => {
+  const [line, setLine] = useState(0);
+  const lines = sadLines(n);
+  useEffect(() => {
+    if (line >= lines.length - 1) return;
+    const t = setTimeout(() => setLine(line + 1), SAD_MS);
+    return () => clearTimeout(t);
+  }, [line, lines.length]);
+  return (
   <Scene bg="/game/bg-mars-empty.jpg" testid="lose-grave" className="overflow-hidden">
     <div className="tombstone" data-testid="grave-stone">
       <span className="font-display text-lg">R.I.P.</span>
       <span className="text-sm font-extrabold">Rocket G-1</span>
       <span className="text-xs font-bold">2049 - 2049</span>
       <span className="text-[10px] font-bold mt-1">Piloted by cadet {n}. It lost a fight against a malfunction.</span>
-      <motion.span className="grave-flower" initial={{ scale: 0, y: -40 }} animate={{ scale: 1, y: 0 }} transition={{ delay: 4.4, type: "spring" }}>
-        <Flower2 size={40} className="text-pink-500 fill-pink-300" />
+      <motion.span className="grave-flower" data-testid="grave-flower" initial={{ scale: 0, y: -60, rotate: -30 }} animate={{ scale: 1, y: 0, rotate: [0, -6, 6, 0] }} transition={{ delay: 5, type: "spring", bounce: 0.5 }}>
+        <Flower2 size={150} strokeWidth={1.6} className="text-pink-600 fill-pink-300 drop-shadow-[4px_4px_0_#111]" />
       </motion.span>
     </div>
     <motion.img src="/game/bob.png" alt="B.O.B." className="absolute bottom-[10vh] w-32 sm:w-44 drop-shadow-2xl"
-      initial={{ left: "50%", y: "-100vh", rotate: 200 }} animate={{ left: ["50%", "50%", "60%"], y: ["-100vh", "0vh", "0vh"], rotate: [200, 0, 0] }}
+      initial={{ left: "50%", y: "-100vh", rotate: 200 }} animate={{ left: ["50%", "50%", "53%"], y: ["-100vh", "0vh", "0vh"], rotate: [200, 0, 0] }}
       transition={{ duration: 4, times: [0, 0.5, 1] }} />
     <div className="absolute top-[8vh] inset-x-0 px-4 flex flex-col items-center gap-4">
-      <Caption>B.O.B. drifted for 7 months and landed on Mars. He was always sarcastic... but he never forgot a friend.</Caption>
+      {!stoopid && <Caption key={line}><span data-testid="bob-sad-text">{lines[line]}</span></Caption>}
       {stoopid && (
         <>
           <motion.h1 data-testid="stoopids-text" className="font-display text-6xl sm:text-7xl lg:text-8xl text-orange title-shadow"
@@ -58,15 +75,17 @@ const Grave = ({ n, stoopid, onDone }) => (
         </>
       )}
     </div>
+    {line >= 4 && !stoopid && <div className="tears" aria-hidden><i /><i /></div>}
   </Scene>
-);
+  );
+};
 
 export default function LoseEnding({ name, onDone }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
     const steps = [() => sfx.explode(), () => sfx.sad(), () => {}, () => sfx.bonk()];
     steps[phase]?.();
-    const delays = [2600, 7500, 6000];
+    const delays = [2600, 7500, SAD_MS * 5 + 1500];
     if (phase > 2) return;
     const t = setTimeout(() => setPhase(phase + 1), delays[phase]);
     return () => clearTimeout(t);

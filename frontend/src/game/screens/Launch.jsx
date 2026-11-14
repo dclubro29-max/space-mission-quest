@@ -18,12 +18,12 @@ export default function Launch({ onDone }) {
 
   return (
     <Scene bg="/game/bg-launchpad.jpg" testid="launch-screen" className={`overflow-hidden ${lift ? "rumble" : ""}`}>
-      <motion.div className="absolute left-1/2 -translate-x-1/2 bottom-[12vh] w-28 sm:w-36"
+      <motion.div className="absolute left-0 right-0 mx-auto bottom-[5vh] w-40 sm:w-52 lg:w-60"
         animate={lift ? { y: "-130vh" } : { y: 0 }} transition={{ duration: 3, ease: "easeIn" }}>
         <Rocket flame={lift} className="w-full" />
       </motion.div>
       {lift && <div className="smoke" />}
-      <div className="absolute inset-x-0 top-[12vh] flex flex-col items-center gap-6">
+      <div className="absolute inset-x-0 top-[5vh] flex flex-col items-center gap-6">
         {count === null && (
           <>
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-cream title-shadow text-center px-4">Rocket G-1 ready</h1>

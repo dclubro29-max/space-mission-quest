@@ -10,7 +10,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const Roll = ({ onEnd }) => (
   <motion.div className="credits-roll" initial={{ y: "100vh" }} animate={{ y: "-100%" }} transition={{ duration: 26, ease: "linear" }} onAnimationComplete={onEnd}>
     <p className="font-display text-orange text-xl">Space Hackers present</p>
-    <h1 className="font-display text-5xl sm:text-6xl text-cream mt-3">Mission: Gratziella</h1>
+    <h1 className="font-display text-5xl sm:text-6xl text-cream mt-3">Space Mission</h1>
     <p className="credits-head">Created by</p>
     {CREATORS.map((c) => {
       const img = COLONY.find((p) => p.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "") === c.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))?.img;

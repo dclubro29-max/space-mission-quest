@@ -17,7 +17,7 @@ export default function WinEnding({ onDone }) {
       {landed && (
         <motion.div className="absolute inset-x-0 top-[10vh] flex flex-col items-center gap-6 px-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-cream title-shadow">TOUCHDOWN!</h1>
-          <BobSays text="We landed. Nobody exploded. I am genuinely shocked. Let's go explore Mars and Gratziella World!" testid="win-bob-text" />
+          <BobSays text="We landed. Nobody exploded. I am genuinely shocked. Let's go explore Mars and the colony!" testid="win-bob-text" />
           <Btn data-testid="win-continue-btn" onClick={onDone}>Explore Mars</Btn>
         </motion.div>
       )}

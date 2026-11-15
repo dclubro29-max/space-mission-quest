@@ -8,7 +8,7 @@ const SPOTS = [
   { id: "mountains", name: "Martian Mountains", x: 12, y: 26, fact: "Mars has Olympus Mons, the biggest volcano in the Solar System. It's about 22 km tall, almost 3 times taller than Mount Everest!", bob: "I tried to climb it once. I have tracks, not legs. It did not go well." },
   { id: "habitat", name: "Crew Habitat", x: 30, y: 49, fact: "Habitats on Mars must be sealed and pressurized, because the Martian air is very thin and mostly carbon dioxide.", bob: "This is where you'll sleep. The door opens automatically. You're welcome." },
   { id: "greenhouse", name: "Potato Greenhouse", x: 38, y: 41, fact: "Plants can grow in Martian greenhouses with water, light and nutrients. Potatoes are one of the best space crops!", bob: "Your 3 potatoes were not useless after all. I take back 2% of what I said." },
-  { id: "palace", name: "Queen Gratziella's Palace", x: 67, y: 36, fact: "The biggest dome in Gratziella World. Domes are strong shapes that hold air pressure inside really well.", bob: "The Queen throws a dance party every Friday. Attendance is mandatory. I'm the DJ." },
+  { id: "palace", name: "Queen Gratziella's Palace", x: 67, y: 36, fact: "The biggest dome in the colony. Domes are strong shapes that hold air pressure inside really well.", bob: "The Queen throws a dance party every Friday. Attendance is mandatory. I'm the DJ." },
   { id: "solar", name: "Solar Farm", x: 77, y: 31, fact: "Mars gets less than half the sunlight Earth gets, and dust storms can cover the panels for weeks!", bob: "Somebody has to dust these. Guess who. Not me. YOU." },
   { id: "antenna", name: "Earth Link Antenna", x: 88, y: 30, fact: "Messages from Mars take between 3 and 22 minutes to reach Earth, depending on where the planets are.", bob: "Want to call your mom? Say hi, then wait 20 minutes. Very dramatic." },
   { id: "rover", name: "Rover Garage", x: 73, y: 68, fact: "Rovers explore Mars and study rocks. NASA's Perseverance even collects samples for future missions to bring back to Earth.", bob: "I asked for driving lessons. They said no, 'because of the door incident'." },
@@ -35,11 +35,11 @@ export default function Explore({ name, onDone }) {
       <div className="absolute inset-0 backdrop-blur-md bg-black/30" />
       <div className="relative flex flex-col items-center gap-3 py-4 px-2">
         <div className="panel px-5 py-3 flex flex-wrap items-center justify-center gap-4">
-          <h2 className="font-display text-lg md:text-xl text-navy">Explore Mars & Gratziella World</h2>
+          <h2 className="font-display text-lg md:text-xl text-navy">Space Mission: Explore Mars & the Colony</h2>
           <span className="level-chip" data-testid="explore-progress">{seen.size} / {SPOTS.length} discovered</span>
         </div>
         <div className="explore-map" data-testid="explore-map">
-          <img src="/game/bg-mars.jpg" alt="Gratziella World on Mars" className="absolute inset-0 w-full h-full" />
+          <img src="/game/bg-mars.jpg" alt="Mars colony" className="absolute inset-0 w-full h-full" />
           {SPOTS.map((s) => (
             <button key={s.id} data-testid={`explore-spot-${s.id}`} onClick={() => visit(s)}
               className={`hotspot ${seen.has(s.id) ? "hotspot-seen" : ""}`} style={{ left: `${s.x}%`, top: `${s.y}%` }} aria-label={s.name}>

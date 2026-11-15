@@ -59,7 +59,7 @@ const Grave = ({ n, stoopid, onDone }) => {
       <span className="text-xs font-bold">2049 - 2049</span>
       <span className="text-[10px] font-bold mt-1">Piloted by cadet {n}. It lost a fight against a malfunction.</span>
       <motion.span className="grave-flower" data-testid="grave-flower" initial={{ scale: 0, y: -60, rotate: -30 }} animate={{ scale: 1, y: 0, rotate: [0, -6, 6, 0] }} transition={{ delay: 5, type: "spring", bounce: 0.5 }}>
-        <Flower2 size={150} strokeWidth={1.6} className="text-pink-600 fill-pink-300 drop-shadow-[4px_4px_0_#111]" />
+        <Flower2 size={260} strokeWidth={1.4} className="text-pink-600 fill-pink-300 drop-shadow-[4px_4px_0_#111]" />
       </motion.span>
     </div>
     <motion.img src="/game/bob.png" alt="B.O.B." className="absolute bottom-[10vh] w-32 sm:w-44 drop-shadow-2xl"

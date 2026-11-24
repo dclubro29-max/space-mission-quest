@@ -43,7 +43,7 @@ export const Hud = ({ G, onOpen, onPhoto }) => {
         <Bar icon={Radiation} v={G.rad} color="#7bd389" label="radiation" warn={G.rad > 70} />
         <div className="mars-hud-row" data-testid="hud-time">
           {night ? <Moon size={14} /> : <Sun size={14} />} Sol {G.sol} · {clock(G)}
-          <span className="ml-auto flex items-center gap-1"><WIcon size={14} /> {wName}</span>
+          <span className="ml-auto flex items-center gap-1"><WIcon size={14} /> {G.layer === "under" ? "Sheltered" : wName}</span>
         </div>
         {G.worldEvent?.sol === G.sol && <div className="mars-hud-row text-[#7bd389]" data-testid="hud-event"><Sparkles size={14} /> {WORLD_EVENTS[G.worldEvent.type].name}</div>}
         <div className="mars-hud-row" data-testid="hud-credits"><Coins size={14} /> {G.credits} credits {G.layer === "under" && <span className="ml-auto text-cyan-300">UNDERGROUND</span>}</div>

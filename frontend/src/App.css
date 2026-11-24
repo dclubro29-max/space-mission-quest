@@ -241,11 +241,14 @@ body { font-family: "Baloo 2", cursive; background: var(--navy); color: var(--na
   .mars-iconbtn { min-height: 42px; display: grid; place-items: center; }
   .joy { left: 14px; bottom: max(18px, env(safe-area-inset-bottom)); }
   .mars-actions { right: 12px; bottom: max(18px, env(safe-area-inset-bottom)); }
-  .mars-bob { top: auto; bottom: 226px; }
+  .mars-tracker { top: 180px; bottom: auto; left: 10px; right: auto; width: min(63vw, 300px); }
+  .mars-root:has(.mars-emerg) .mars-tracker { top: 218px; }
+  .mars-prompt { bottom: 153px; }
+  .mars-bob { top: auto; bottom: 213px; }
 }
 @media (max-height: 500px) and (orientation: landscape) {
   .mars-topbtns { top: 8px; right: 72px; flex-direction: row; }
-  .mars-tracker { top: 54px; bottom: auto; right: 10px; }
+  .mars-tracker, .mars-root:has(.mars-emerg) .mars-tracker { top: 54px; bottom: auto; left: auto; right: 10px; }
   .joy { width: 92px; height: 92px; }
   .joy-knob { width: 38px; height: 38px; top: 24px; left: 24px; }
   .mars-bob { bottom: 95px; max-width: 42vw; }

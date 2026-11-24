@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Rocket as RocketIcon } from "lucide-react";
+import { Rocket as RocketIcon, Globe } from "lucide-react";
 import { Scene, Btn } from "../ui";
 import { sfx } from "../sound";
 
-export default function Title({ onStart }) {
+export default function Title({ onStart, onExplore }) {
+  const unlocked = localStorage.getItem("explore-mars-unlocked") === "1";
   const [name, setName] = useState("Alex");
   const start = () => { sfx.fanfare(); onStart(name.trim() || "Alex"); };
   return (
@@ -27,6 +28,7 @@ export default function Title({ onStart }) {
               <Btn data-testid="start-game-btn" onClick={start}>Start <RocketIcon size={20} /></Btn>
             </div>
           </div>
+          {unlocked && <Btn variant="red" data-testid="title-explore-mars-btn" className="mt-4" onClick={() => onExplore(name.trim() || "Alex")}><Globe size={20} /> EXPLORE MARS</Btn>}
           <p className="text-cream/70 text-sm mt-4 font-semibold">A game by the Space Hackers team</p>
         </motion.div>
         <motion.div className="relative flex justify-center" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: "spring" }}>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Trophy, RotateCcw, SkipForward } from "lucide-react";
+import { Trophy, RotateCcw, SkipForward, Globe } from "lucide-react";
 import { Scene, Btn } from "../ui";
 import { CREATORS, COLONY } from "../data";
 
@@ -33,7 +33,7 @@ const Roll = ({ onEnd }) => (
   </motion.div>
 );
 
-export default function Credits({ result, onRestart }) {
+export default function Credits({ result, onRestart, onExplore }) {
   const [ended, setEnded] = useState(false);
   const [board, setBoard] = useState([]);
   const saved = useRef(false);
@@ -67,7 +67,8 @@ export default function Credits({ result, onRestart }) {
                 </li>
               ))}
             </ol>
-            <Btn data-testid="play-again-btn" className="mt-6 w-full justify-center" onClick={onRestart}><RotateCcw size={18} /> Play again</Btn>
+            {result.outcome === "win" && <Btn data-testid="explore-mars-btn" variant="red" className="mt-6 w-full justify-center" onClick={onExplore}><Globe size={18} /> EXPLORE MARS</Btn>}
+            <Btn data-testid="play-again-btn" className="mt-3 w-full justify-center" onClick={onRestart}><RotateCcw size={18} /> Play again</Btn>
           </motion.div>
         </div>
       )}

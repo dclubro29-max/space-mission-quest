@@ -171,7 +171,7 @@ export const MenuPanel = ({ G, onClose, onExit }) => {
       </div>
       <div className="flex flex-col gap-2 mt-4">
         <button className="toon-btn toon-btn-navy justify-center" data-testid="menu-save-btn" onClick={() => { saveGame(G); toast(G, "Game saved!"); onClose(); }}><Save size={16} /> Save now</button>
-        <button className="toon-btn toon-btn-orange justify-center" data-testid="menu-exit-btn" onClick={onExit}><LogOut size={16} /> Save & exit to title</button>
+        <button className="toon-btn toon-btn-orange justify-center" data-testid="menu-exit-btn" onClick={onExit}><LogOut size={16} /> Save & finish (colony, credits / title)</button>
         <button className="toon-btn toon-btn-red justify-center" data-testid="menu-reset-btn" onClick={() => { if (!confirm) return setConfirm(true); deleteSave(); window.location.reload(); }}>
           <Trash2 size={16} /> {confirm ? "Tap again to erase ALL Mars progress" : "Restart Explore Mars"}
         </button>

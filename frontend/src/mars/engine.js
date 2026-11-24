@@ -54,6 +54,7 @@ export function loadGame(name) {
   let G;
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s?.v === 1) G = { ...newGame(s.name || name), ...s, stats: { ...newGame(name).stats, ...s.stats } }; } catch { G = null; }
   G = G || newGame(name);
+  if (name) G.name = name;
   G.tmp = tmpState(G);
   return G;
 }

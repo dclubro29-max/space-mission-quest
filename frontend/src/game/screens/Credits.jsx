@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Trophy, RotateCcw, SkipForward, Globe } from "lucide-react";
+import { Trophy, RotateCcw, SkipForward } from "lucide-react";
 import { Scene, Btn } from "../ui";
 import { CREATORS, COLONY } from "../data";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const Roll = ({ onEnd }) => (
+const Roll = ({ onEnd, result }) => (
   <motion.div className="credits-roll" initial={{ y: "100vh" }} animate={{ y: "-100%" }} transition={{ duration: 26, ease: "linear" }} onAnimationComplete={onEnd}>
     <p className="font-display text-orange text-xl">Space Hackers present</p>
     <h1 className="font-display text-5xl sm:text-6xl text-cream mt-3">Space Mission</h1>
@@ -23,7 +23,7 @@ const Roll = ({ onEnd }) => (
     })}
     <p className="credits-head">Starring</p>
     <p className="text-cream text-xl font-bold">B.O.B. as Himself (sarcastically)</p>
-    <p className="text-cream text-xl font-bold">Commander Rex · Captain Nova · Cadet Alex</p>
+    <p className="text-cream text-xl font-bold">Commander Rex · Captain Nova · Cadet {result.name}</p>
     <p className="text-cream text-xl font-bold">Queen Gratziella and the Colony</p>
     <p className="credits-head">Made for</p>
     <p className="text-cream text-xl font-bold">NASA Space Apps Challenge 2026<br />Space Mission Design Game</p>
@@ -33,7 +33,7 @@ const Roll = ({ onEnd }) => (
   </motion.div>
 );
 
-export default function Credits({ result, onRestart, onExplore }) {
+export default function Credits({ result, onRestart }) {
   const [ended, setEnded] = useState(false);
   const [board, setBoard] = useState([]);
   const saved = useRef(false);
@@ -50,7 +50,7 @@ export default function Credits({ result, onRestart, onExplore }) {
       {!ended ? (
         <>
           <button data-testid="credits-skip-btn" className="skip-btn" onClick={() => setEnded(true)}>Skip <SkipForward size={16} /></button>
-          <Roll onEnd={() => setEnded(true)} />
+          <Roll result={result} onEnd={() => setEnded(true)} />
         </>
       ) : (
         <div className="h-full overflow-y-auto flex items-center justify-center px-4 py-8">
@@ -67,8 +67,7 @@ export default function Credits({ result, onRestart, onExplore }) {
                 </li>
               ))}
             </ol>
-            {result.outcome === "win" && <Btn data-testid="explore-mars-btn" variant="red" className="mt-6 w-full justify-center" onClick={onExplore}><Globe size={18} /> EXPLORE MARS</Btn>}
-            <Btn data-testid="play-again-btn" className="mt-3 w-full justify-center" onClick={onRestart}><RotateCcw size={18} /> Play again</Btn>
+            <Btn data-testid="play-again-btn" className="mt-6 w-full justify-center" onClick={onRestart}><RotateCcw size={18} /> Play again</Btn>
           </motion.div>
         </div>
       )}

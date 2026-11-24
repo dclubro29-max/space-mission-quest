@@ -27,6 +27,12 @@ Cartoon game for middle-school kids, in English. B.O.B., a sarcastic robot, intr
 - Unlocks after winning Level 3 (localStorage flag); entry from the credits screen and the title screen
 - No multiplayer (user's choice)
 
+## Iteration 4 (2026-06): EXPLORE MARS 2.1 + flow fix
+- After landing (good ending), Explore Mars opens directly. Menu > Save & finish leads to the colony and then the credits (from the title screen it returns to the title). The Explore Mars button was removed from the credits
+- The credits use the player's name (there's no default "Alex" any more; the name field is empty, fallback "Rookie"); the Mars save uses the current name
+- 2.1: messages when there aren't enough credits or resources, supplies are not used when the stat is already full, 120 starting credits, the Queen is preferred as the talk target
+- New in src/mars/living.js, content2.js, LivingPanels.jsx: NPC schedules (work/market/plaza/sleep), colony levels with houses and colonists, festivals with fireworks, Residential/Market Street/Spaceport/Robot Factory, mining robots, rover paint and decals, 8 underground chests + treasure map, 4 real abandoned spacecraft, space tourism, race against B.O.B., 3 daily challenges, 5 rare world events, the secret city of Aurelia + Mayor Lux + luxury shop, alien encounter at the Black Monolith, 5 secret missions, 6 animated cutscenes, Photo Mode with filters + in-game album (localStorage, 12 photos), particles, coloured glows, dusk, aurora, comet, new sounds
+
 ## Backlog
 - P1: keyboard play for the puzzle, save progress when the page reloads, retry Level 3 without starting over, ask before publishing a name to the leaderboard, check scores on the server
 - P1: messages when there aren't enough credits or resources, block using supplies when the stat is already full, Queen as the preferred first talk target

@@ -21,7 +21,8 @@ export const PhotoOverlay = ({ G, canvasRef, filter, setFilter, onClose }) => {
     x.fillStyle = "rgba(20,33,61,0.75)"; x.fillRect(0, h - 30, w, 30); x.fillStyle = "#fff4e0"; x.font = "700 15px 'Baloo 2', sans-serif"; x.fillText(`${place} · Sol ${G.sol} · ${G.name}`, 12, h - 10);
     const album = albumLoad();
     album.unshift({ id: Date.now(), img: o.toDataURL("image/jpeg", 0.7), place, sol: G.sol });
-    while (album.length > 12 || (album.length > 1 && !albumSave(album))) album.pop();
+    while (album.length > 12) album.pop();
+    while (!albumSave(album) && album.length > 1) album.pop();
     G.stats.photos++;
     const bonus = photoBonus(G);
     if (bonus && !G.flags[`photoBonus${G.sol}`]) { G.flags[`photoBonus${G.sol}`] = true; add(G, "credits", bonus); toast(G, `Rare sky photo! +${bonus} credits`); }

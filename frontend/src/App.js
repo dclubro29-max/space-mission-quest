@@ -21,7 +21,7 @@ import Colony from "@/game/screens/Colony";
 import Credits from "@/game/screens/Credits";
 import MarsGame from "@/mars/MarsGame";
 
-const INITIAL = { stage: "title", name: "Alex", bonks: 0, moves: 0, quiz: 0, repair: null };
+const INITIAL = { stage: "title", name: "Rookie", bonks: 0, moves: 0, quiz: 0, repair: null };
 
 function App() {
   const [g, setG] = useState(INITIAL);
@@ -40,7 +40,7 @@ function App() {
 
   const screens = {
     title: () => <Title onStart={(name) => go("intro", { ...INITIAL, name })} onExplore={(name) => go("mars", { name })} />,
-    mars: () => <MarsGame name={g.name} onExit={() => go("title")} />,
+    mars: () => <MarsGame name={g.name} onExit={() => go(g.repair?.win ? "colony" : "title")} />,
     intro: () => dlg("intro", "door"),
     door: () => <DoorGag onDone={(bonks) => go("training", { bonks })} />,
     training: () => dlg("training", "cards"),
@@ -57,11 +57,11 @@ function App() {
     launch: () => <Launch onDone={() => go("lvl3")} />,
     lvl3: () => <LevelCard n={3} title="Problems & Solutions" subtitle="Malfunctions ahead! Pick the right component to repair. 3 mistakes and... BOOM." onStart={() => go("repair")} />,
     repair: () => <Repair onDone={(repair) => { if (repair.win) localStorage.setItem("explore-mars-unlocked", "1"); go(repair.win ? "win" : "lose", { repair }); }} />,
-    win: () => <WinEnding onDone={() => go("explore")} />,
+    win: () => <WinEnding onDone={() => go("mars")} />,
     explore: () => <Explore name={g.name} onDone={() => go("colony")} />,
     lose: () => <LoseEnding name={g.name} onDone={() => go("colony")} />,
     colony: () => <Colony win={g.repair?.win} name={g.name} onDone={() => go("credits")} />,
-    credits: () => <Credits result={result()} onRestart={() => go("title", INITIAL)} onExplore={() => go("mars")} />,
+    credits: () => <Credits result={result()} onRestart={() => go("title", INITIAL)} />,
   };
 
   return (

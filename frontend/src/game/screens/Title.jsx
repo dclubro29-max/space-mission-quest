@@ -6,8 +6,8 @@ import { sfx } from "../sound";
 
 export default function Title({ onStart, onExplore }) {
   const unlocked = localStorage.getItem("explore-mars-unlocked") === "1";
-  const [name, setName] = useState("Alex");
-  const start = () => { sfx.fanfare(); onStart(name.trim() || "Alex"); };
+  const [name, setName] = useState("");
+  const start = () => { sfx.fanfare(); onStart(name.trim() || "Rookie"); };
   return (
     <Scene bg="/game/bg-space.jpg" testid="title-screen" className="flex items-center">
       <div className="w-full max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
@@ -24,11 +24,11 @@ export default function Title({ onStart, onExplore }) {
             <div className="flex gap-3 mt-2">
               <input id="cadet" data-testid="cadet-name-input" maxLength={20} value={name}
                 onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && start()}
-                className="toon-input flex-1" />
+                className="toon-input flex-1" placeholder="Type your name" />
               <Btn data-testid="start-game-btn" onClick={start}>Start <RocketIcon size={20} /></Btn>
             </div>
           </div>
-          {unlocked && <Btn variant="red" data-testid="title-explore-mars-btn" className="mt-4" onClick={() => onExplore(name.trim() || "Alex")}><Globe size={20} /> EXPLORE MARS</Btn>}
+          {unlocked && <Btn variant="red" data-testid="title-explore-mars-btn" className="mt-4" onClick={() => onExplore(name.trim() || "Rookie")}><Globe size={20} /> EXPLORE MARS</Btn>}
           <p className="text-cream/70 text-sm mt-4 font-semibold">A game by the Space Hackers team</p>
         </motion.div>
         <motion.div className="relative flex justify-center" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: "spring" }}>

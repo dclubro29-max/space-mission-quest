@@ -200,3 +200,30 @@ body { font-family: "Baloo 2", cursive; background: var(--navy); color: var(--na
   .mars-prompt { bottom: 214px; max-width: 92vw; }
   .mars-emerg { margin-top: 150px; font-size: 0.65rem; }
 }
+
+/* ===== EXPLORE MARS 2.1 ===== */
+.photo-ui { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+.photo-ui > * { pointer-events: auto; }
+.photo-frame { position: absolute; inset: 14px; border: 3px solid rgba(255,244,224,0.8); border-radius: 18px; pointer-events: none !important; box-shadow: inset 0 0 0 2000px rgba(0,0,0,0); }
+.photo-frame::before, .photo-frame::after { content: ""; position: absolute; left: 50%; top: 50%; background: rgba(255,244,224,0.7); }
+.photo-frame::before { width: 30px; height: 2px; transform: translate(-50%, -50%); }
+.photo-frame::after { width: 2px; height: 30px; transform: translate(-50%, -50%); }
+.photo-flash { position: absolute; inset: 0; background: #fff; pointer-events: none !important; }
+.photo-bar { position: absolute; left: 0; right: 0; bottom: 24px; margin: 0 auto; width: fit-content; max-width: 94vw; padding: 10px; }
+.cutscene { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.cs-stars { position: absolute; inset: 0; background-image: radial-gradient(2px 2px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 20%, #fff, transparent), radial-gradient(2px 2px at 40% 80%, #fff, transparent), radial-gradient(1px 1px at 85% 60%, #fff, transparent), radial-gradient(1.5px 1.5px at 10% 70%, #fff, transparent), radial-gradient(1px 1px at 55% 45%, #fff, transparent); background-size: 300px 300px; animation: twinkle 4s ease-in-out infinite alternate; }
+@keyframes twinkle { to { opacity: 0.5; } }
+.cs-art { position: relative; height: 340px; width: 100%; display: flex; align-items: center; justify-content: center; }
+.cs-planet { border-radius: 999px; border: 5px solid #111; box-shadow: 0 0 60px rgba(255,255,255,0.25); position: relative; }
+.cs-cloud { position: absolute; width: 160px; height: 40px; border-radius: 40px; background: rgba(255,255,255,0.85); border: 3px solid #111; }
+.cs-rain { position: absolute; inset: 0; background-image: repeating-linear-gradient(105deg, rgba(160,210,255,0.35) 0 2px, transparent 2px 22px); animation: rain 0.6s linear infinite; opacity: 0; animation-delay: 4s; animation-fill-mode: forwards; }
+@keyframes rain { from { background-position: 0 0; opacity: 1; } to { background-position: -20px 60px; opacity: 1; } }
+.cs-ring { position: absolute; border: 6px solid #50ffb4; border-radius: 999px; box-shadow: 0 0 30px rgba(80,255,180,0.6); border-right-color: transparent; }
+.cs-door { position: absolute; top: 0; bottom: 0; width: 50%; background: repeating-linear-gradient(90deg, #3d405b 0 30px, #2b2d42 30px 60px); border: 5px solid #111; }
+.cs-door-l { left: 0; } .cs-door-r { right: 0; }
+.cs-data { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 999px; background: #3fe0ff; box-shadow: 0 0 14px #3fe0ff; }
+.cs-monolith { position: absolute; width: 60px; height: 260px; background: #111; border: 4px solid #c77dff; box-shadow: 0 0 60px rgba(199,125,255,0.8); left: calc(50% - 150px); }
+.cs-flower { width: 8px; background: #2a9d8f; border: 2px solid #111; position: relative; }
+.cs-flower span { position: absolute; top: -22px; left: -16px; width: 40px; height: 40px; border-radius: 999px; border: 3px solid #111; box-shadow: 0 0 24px currentColor; }
+.cs-cap { position: relative; color: var(--cream); text-align: center; font-size: clamp(1.1rem, 3vw, 2rem); padding: 0 1rem; text-shadow: 3px 3px 0 #111; margin-top: 24px; }
+.cs-continue { margin-top: 20px; position: relative; }

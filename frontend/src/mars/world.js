@@ -1,5 +1,6 @@
 import { fbm, rng, hash2 } from "./noise";
 import { POIS, COLLECTIBLES, FRAGMENTS } from "./content";
+import "./content2";
 
 export const TILE = 24;
 export const RES = 4;
@@ -62,8 +63,8 @@ function genSurface(pois, terraformed) {
   });
   pois.forEach((p) => {
     if (p.ring) {
-      brush(h, P, p.x, p.y, 8, (v, d) => (d < 0.5 ? 0.5 : Math.max(v, 0.86)));
-    } else brush(h, P, p.x, p.y, p.id === "colony" ? 13 : 4, (v, d) => lerp(Math.min(v, 0.48), v, d * d));
+      brush(h, P, p.x, p.y, p.ring === true ? 8 : p.ring, (v, d) => (d < 0.5 ? 0.5 : Math.max(v, 0.86)));
+    } else brush(h, P, p.x, p.y, p.id === "colony" ? 13 : p.big || 4, (v, d) => lerp(Math.min(v, 0.48), v, p.big ? d ** 4 : d * d));
   });
   [...COLLECTIBLES, ...FRAGMENTS].filter((c) => !c.layer).forEach((c) => brush(h, P, c.fx * N, c.fy * N, 2.5, (v, d) => lerp(Math.min(v, 0.55), v, d)));
   return paint(h, P, N, (x, y, v) => {

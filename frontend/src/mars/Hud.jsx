@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Heart, Zap, Radiation, Map, Backpack, ScrollText, Trophy, Menu, Sun, Moon, CloudFog, Tornado, Coins, Hand, Rocket, CarFront, TriangleAlert } from "lucide-react";
+import { Wind, Heart, Zap, Radiation, Map, Backpack, ScrollText, Trophy, Menu, Sun, Moon, CloudFog, Tornado, Coins, Hand, Rocket, CarFront, TriangleAlert, Camera, Images, Megaphone, Sparkles } from "lucide-react";
+import { WORLD_EVENTS } from "./content2";
+import { sfx } from "../game/sound";
 import { MISSIONS } from "./content";
 import { maxO2, isNight } from "./engine";
 import { DAY_LEN } from "./content";
@@ -20,11 +22,11 @@ const clock = (G) => {
 const WEATHER = { clear: [Sun, "Clear"], dusty: [CloudFog, "Dusty"], storm: [Tornado, "DUST STORM"] };
 const EMERG = { flare: "SOLAR FLARE: find shelter or go underground!", meteor: "METEOR SHOWER: dodge the shadows!", rescue: "RESCUE: reach the stranded colonist!", leak: "SUIT LEAK: use a repair kit!" };
 
-export const Hud = ({ G, onOpen }) => {
+export const Hud = ({ G, onOpen, onPhoto }) => {
   const m = MISSIONS[G.story];
   const [WIcon, wName] = WEATHER[G.weather.type];
   const night = isNight(G);
-  const btns = [["map", Map, "Map (M)"], ["bag", Backpack, "Bag (I)"], ["quests", ScrollText, "Quests (Q)"], ["trophies", Trophy, "Trophies"], ["menu", Menu, "Menu"]];
+  const btns = [["map", Map, "Map (M)"], ["bag", Backpack, "Bag (I)"], ["quests", ScrollText, "Quests (Q)"], ["trophies", Trophy, "Trophies"], ["album", Images, "Photo album"], ["menu", Menu, "Menu"]];
   return (
     <>
       <div className="mars-hud" data-testid="mars-hud">
@@ -36,9 +38,11 @@ export const Hud = ({ G, onOpen }) => {
           {night ? <Moon size={14} /> : <Sun size={14} />} Sol {G.sol} · {clock(G)}
           <span className="ml-auto flex items-center gap-1"><WIcon size={14} /> {wName}</span>
         </div>
+        {G.worldEvent?.sol === G.sol && <div className="mars-hud-row text-[#7bd389]" data-testid="hud-event"><Sparkles size={14} /> {WORLD_EVENTS[G.worldEvent.type].name}</div>}
         <div className="mars-hud-row" data-testid="hud-credits"><Coins size={14} /> {G.credits} credits {G.layer === "under" && <span className="ml-auto text-cyan-300">UNDERGROUND</span>}</div>
       </div>
       <div className="mars-topbtns">
+        <button data-testid="hud-photo-btn" className="mars-iconbtn !bg-[#ffc93c]" title="Photo Mode (P)" aria-label="Photo Mode" onClick={onPhoto}><Camera size={18} /></button>
         {btns.map(([k, I, t]) => <button key={k} data-testid={`hud-${k}-btn`} className="mars-iconbtn" title={t} aria-label={t} onClick={() => onOpen(k)}><I size={18} /></button>)}
       </div>
       <div className="mars-tracker" data-testid="mission-tracker">
@@ -92,6 +96,7 @@ export const Controls = ({ G, joy, jet, onInteract, onRover }) => {
             <Rocket size={20} /><span>Jet</span>
           </button>
         )}
+        {G.inRover && <button className="mars-action" data-testid="mars-horn-btn" onClick={() => sfx.horn()}><Megaphone size={20} /><span>Honk</span></button>}
         {G.rover && G.layer === "surface" && (G.inRover || near?.kind === "rover") && (
           <button className="mars-action" data-testid="mars-rover-btn" onClick={onRover}><CarFront size={20} /><span>{G.inRover ? "Exit" : "Drive"}</span></button>
         )}

@@ -8,9 +8,10 @@ import { DialogBox, NpcPanel } from "./Talk";
 import { MapPanel, BagPanel, QuestPanel, TrophyPanel, MenuPanel } from "./Panels";
 import { CraftPanel, MarketPanel, BuildPanel, HabitatPanel, EndingPanel } from "./ColonyPanels";
 import { sfx } from "../game/sound";
+import { PhotoOverlay, AlbumPanel, RobotsPanel, ToursPanel, LuxPanel, Cutscene, FILTERS } from "./LivingPanels";
 
 const KEYMAP = { ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1], ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0] };
-const PANELS = { map: MapPanel, bag: BagPanel, quests: QuestPanel, trophies: TrophyPanel, menu: MenuPanel, craft: CraftPanel, upgrades: CraftPanel, market: MarketPanel, build: BuildPanel, habitat: HabitatPanel, ending: EndingPanel };
+const PANELS = { map: MapPanel, bag: BagPanel, quests: QuestPanel, trophies: TrophyPanel, menu: MenuPanel, craft: CraftPanel, upgrades: CraftPanel, market: MarketPanel, build: BuildPanel, habitat: HabitatPanel, ending: EndingPanel, album: AlbumPanel, robots: RobotsPanel, tours: ToursPanel, lux: LuxPanel };
 
 export default function MarsGame({ name, onExit }) {
   const cvs = useRef(null);
@@ -26,11 +27,15 @@ export default function MarsGame({ name, onExit }) {
   const [dlg, setDlg] = useState(null);
   const [bobMsg, setBobMsg] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [cuts, setCuts] = useState([]);
+  const [photo, setPhoto] = useState(false);
+  const [filter, setFilter] = useState(0);
   const imgs = useMemo(() => {
     const src = { alex: "/game/alex.png", bob: "/game/bob.png", ...Object.fromEntries(Object.entries(NPCS).map(([k, v]) => [k, v.img])) };
     return Object.fromEntries(Object.entries(src).map(([k, s]) => { const i = new Image(); i.src = s; return [k, i]; }));
   }, []);
-  paused.current = !!(panel || talk || dlg);
+  paused.current = !!(panel || talk || dlg || cuts.length);
+  if (G.current) G.current.tmp.photo = photo;
   const ui = useMemo(() => ({ open: (p) => { sfx.select(); setPanel(p); }, talk: (id) => { sfx.select(); setTalk(id); } }), []);
 
   const doInteract = useCallback(() => { if (!paused.current && G.current) { interact(G.current, G.current.tmp.near, ui); sfx.click(); } }, [ui]);
@@ -70,6 +75,8 @@ export default function MarsGame({ name, onExit }) {
           if (e.kind === "bob") setBobMsg({ text: e.text, id: now + Math.random() });
           if (e.kind === "toast") { const id = now + Math.random(); setToasts((ts) => [...ts.slice(-3), { id, text: e.text }]); setTimeout(() => setToasts((ts) => ts.filter((z) => z.id !== id)), 3200); }
           if (e.kind === "dialog") lines.push(...e.lines);
+          if (e.kind === "sfx") sfx[e.name]?.();
+          if (e.kind === "cutscene") setCuts((c) => [...c, e.key]);
         });
         if (lines.length) setDlg((d) => (d ? { ...d, lines: [...d.lines, ...lines] } : { lines, i: 0 }));
         setHud((h) => h + 1);
@@ -97,6 +104,8 @@ export default function MarsGame({ name, onExit }) {
       if (e.code === "KeyM") setPanel("map");
       if (e.code === "KeyI") setPanel("bag");
       if (e.code === "KeyQ") setPanel("quests");
+      if (e.code === "KeyP") setPhoto((p) => !p);
+      if (e.code === "KeyH" && G.current.inRover) sfx.horn();
     };
     const up = (e) => keys.current.delete(e.code);
     const blur = () => keys.current.clear();
@@ -116,12 +125,15 @@ export default function MarsGame({ name, onExit }) {
 
   return (
     <div className="mars-root" data-testid="mars-game">
-      <canvas ref={cvs} className="mars-canvas" data-testid="mars-canvas" />
-      <Hud G={g} tick={hud} onOpen={ui.open} />
+      <canvas ref={cvs} className="mars-canvas" data-testid="mars-canvas" style={{ filter: photo ? FILTERS[filter][1] : "none" }} />
+      {photo ? <PhotoOverlay G={g} canvasRef={cvs} filter={filter} setFilter={setFilter} onClose={() => setPhoto(false)} /> : <>
+      <Hud G={g} tick={hud} onOpen={ui.open} onPhoto={() => setPhoto(true)} />
       <Controls G={g} joy={joy} jet={jet} onInteract={doInteract} onRover={toggleRover} />
+      </>}
       <BobToast msg={bobMsg} />
       <Toasts items={toasts} />
-      {dlg && <DialogBox line={dlg.lines[dlg.i]} name={g.name} onNext={nextLine} />}
+      {cuts.length > 0 && <Cutscene key={cuts[0] + cuts.length} id={cuts[0]} onDone={() => setCuts((c) => c.slice(1))} />}
+      {dlg && !cuts.length && <DialogBox line={dlg.lines[dlg.i]} name={g.name} onNext={nextLine} />}
       {talk && !dlg && <NpcPanel G={g} id={talk} onClose={() => setTalk(null)} onShop={() => { setTalk(null); setPanel("market"); }} />}
       {P && !dlg && <P G={g} tab={panel} onClose={() => setPanel(null)} onExit={() => { saveGame(g); onExit(); }} />}
     </div>

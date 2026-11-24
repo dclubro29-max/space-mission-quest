@@ -4,6 +4,8 @@ import { Modal, Tabs } from "./Panels";
 import { RECIPES, RECIPE_NAMES, UPGRADES, upgradeCost, ITEMS, RESOURCES, SHOP_BUY, BUILDINGS } from "./content";
 import { canPay, count, craft, upgrade, build, sell, buy, sellPrice, buyPrice, priceMult, sleep, isNight, chooseEnding } from "./engine";
 import { sfx } from "../game/sound";
+import { CustomsTab } from "./LivingPanels";
+import { Crown, Bath } from "lucide-react";
 
 const Cost = ({ G, cost }) => (
   <div className="flex flex-wrap gap-1 mt-1">
@@ -19,10 +21,11 @@ export const CraftPanel = ({ G, tab, onClose }) => {
   const [, refresh] = useReducer((x) => x + 1, 0);
   return (
     <Modal title="3D Printer & Garage" onClose={onClose} testid="craft-panel" wide>
-      <Tabs tabs={[["craft", "Print items"], ["up", "Upgrades"]]} value={t} onChange={setT} />
+      <Tabs tabs={[["craft", "Print items"], ["up", "Upgrades"], ["custom", "Customize rover"]]} value={t} onChange={setT} />
+      {t === "custom" && <CustomsTab G={G} />}
       <p className="text-xs font-bold text-navy/70 mb-2">Credits: {G.credits}</p>
       <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-        {t === "craft" ? Object.entries(RECIPES).map(([k, cost]) => {
+        {t === "custom" ? null : t === "craft" ? Object.entries(RECIPES).map(([k, cost]) => {
           const done = k === "jetpack" && G.flags.jetpack;
           return (
             <div key={k} className="mars-row" data-testid={`recipe-${k}`}>
@@ -96,7 +99,7 @@ export const BuildPanel = ({ G, onClose }) => {
   );
 };
 
-const DECOR = { bed: BedDouble, plant: Sprout, bob_poster: Image, potato_plant: Bean, guitar: Guitar, teddy: PawPrint, telescope: Telescope, lava_lamp: Lamp, rug: Square, globe: Globe };
+const DECOR = { bed: BedDouble, plant: Sprout, bob_poster: Image, potato_plant: Bean, guitar: Guitar, teddy: PawPrint, telescope: Telescope, lava_lamp: Lamp, rug: Square, globe: Globe, gold_statue: Crown, chandelier: Sparkles, hot_tub: Bath };
 const WALLS = ["#fff4e0", "#bde0fe", "#ffd6e0", "#d8f3dc"];
 const FLOORS = ["#8d6e63", "#5c677d", "#e9c46a", "#2a9d8f"];
 

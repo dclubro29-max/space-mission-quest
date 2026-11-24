@@ -1,6 +1,7 @@
 import { TILE, RES } from "./world";
 import { world, colonyPos, spotPos, npcPos, nodeLeft, resolveTarget, navPoint } from "./engine";
 import { COLONY_SPOTS, BUILDINGS, NPCS, ITEMS, DAY_LEN } from "./content";
+import { livingRenderWorld, livingRenderGlow, drawRover } from "./living";
 
 let lc = null;
 const parts = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), s: 0.5 + Math.random() }));
@@ -34,17 +35,6 @@ const portrait = (ctx, img, x, y, r, ring) => {
   if (img?.complete && img.naturalWidth) ctx.drawImage(img, img.naturalWidth * 0.22, 0, img.naturalWidth * 0.56, img.naturalWidth * 0.56, x - r, y - r, r * 2, r * 2);
   ctx.restore(); ctx.lineWidth = 3; ctx.strokeStyle = ring; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
 };
-const rover = (ctx, x, y, h) => {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(h);
-  ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillRect(-15, -9, 34, 24);
-  ctx.fillStyle = "#222"; [[-12, -13], [6, -13], [-12, 9], [6, 9]].forEach(([a, b]) => ctx.fillRect(a, b, 9, 5));
-  ctx.fillStyle = "#ff7a1a"; ctx.strokeStyle = "#111"; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.roundRect(-16, -10, 32, 20, 6); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = "#3fe0ff"; ctx.beginPath(); ctx.roundRect(2, -7, 10, 14, 3); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = "#fff4e0"; ctx.fillRect(-12, -3, 10, 6);
-  ctx.restore();
-};
-
 function drawPoi(ctx, G, p, x, y, t) {
   if (p.minStory !== undefined && G.story < p.minStory) return;
   if (p.secret && !G.visited[p.id]) { ctx.fillStyle = "rgba(20,10,10,0.5)"; ctx.beginPath(); ctx.ellipse(x, y, 12, 7, 0, 0, 7); ctx.fill(); return; }
@@ -120,13 +110,15 @@ export function render(ctx, G, cw, ch, imgs) {
   Object.keys(NPCS).forEach((id) => {
     const p = npcPos(G, W, id);
     if (!p || p.layer !== G.layer || !vis(p.x, p.y)) return;
-    const [x, y] = S(p.x, p.y); portrait(ctx, imgs[id], x, y, 15, id === "queen" ? "#e0337a" : "#ffc93c"); label(ctx, NPCS[id].name.split(" ")[0], x, y + 28);
+    const [x, y] = S(p.x, p.y); portrait(ctx, imgs[id], x, y, 15, id === "queen" ? "#e0337a" : id === "lux" ? "#d4af37" : "#ffc93c"); label(ctx, NPCS[id].name.split(" ")[0], x, y + 28);
+    if (p.asleep) label(ctx, "Zzz", x + 14 + Math.sin(t * 2) * 3, y - 18 - (t * 8) % 10, "#bde0fe");
   });
   if (G.emerg?.type === "rescue" && G.layer === "surface") {
-    const [x, y] = S(G.emerg.x, G.emerg.y); rover(ctx, x, y, 0.4);
+    const [x, y] = S(G.emerg.x, G.emerg.y); drawRover(ctx, x, y, 0.4);
     ctx.strokeStyle = `rgba(239,35,60,${0.5 + 0.5 * Math.sin(t * 6)})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, 30, 0, 7); ctx.stroke(); label(ctx, `HELP! ${G.emerg.who}`, x, y - 34, "#ff8fa3");
   }
-  if (G.rover && G.layer === "surface") { const [x, y] = S(G.rover.x, G.rover.y); rover(ctx, x, y, G.rover.h || 0); }
+  livingRenderWorld(ctx, G, W, S, vis, t);
+  if (G.rover && G.layer === "surface") { const [x, y] = S(G.rover.x, G.rover.y); drawRover(ctx, x, y, G.rover.h || 0, G.roverStyle); }
   T.meteors.forEach((m) => {
     const [x, y] = S(m.x, m.y), f = 1 - m.t / 2.2;
     ctx.fillStyle = `rgba(0,0,0,${0.2 + f * 0.4})`; ctx.beginPath(); ctx.arc(x, y, 6 + f * 30, 0, 7); ctx.fill();
@@ -143,7 +135,7 @@ export function render(ctx, G, cw, ch, imgs) {
   T.bobPos = T.bobPos || { x: G.p.x, y: G.p.y };
   T.bobPos.x += (G.p.x - 1.3 - T.bobPos.x) * 0.05; T.bobPos.y += (G.p.y - 1 - T.bobPos.y) * 0.05;
   const [bx, by] = S(T.bobPos.x, T.bobPos.y);
-  if (imgs.bob?.complete) ctx.drawImage(imgs.bob, bx - 14, by - 18 + Math.sin(t * 3) * 3, 28, 30);
+  if (imgs.bob?.complete && !T.hideBob) ctx.drawImage(imgs.bob, bx - 14, by - 18 + Math.sin(t * 3) * 3, 28, 30);
 
   // weather
   if (G.layer === "surface" && G.weather.type !== "clear") {
@@ -175,7 +167,9 @@ export function render(ctx, G, cw, ch, imgs) {
     ctx.drawImage(lc, 0, 0);
   }
 
+  livingRenderGlow(ctx, G, W, S, cw, ch, t, G.layer === "under" ? 1 : nightAmount(G));
   // navigation marker
+  if (T.photo) return;
   const tg = navPoint(G, W, resolveTarget(G, W));
   if (tg) {
     const [x, y] = S(tg.x, tg.y);

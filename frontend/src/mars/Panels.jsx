@@ -4,6 +4,8 @@ import { MISSIONS, QUESTS, ACHIEVEMENTS, COLLECTIBLES, ITEMS, RESOURCES, UPGRADE
 import { SIZES } from "./world";
 import { world, colonyPos, consumeItem, count, questMet, saveGame, deleteSave, FOG, resolveTarget, toast } from "./engine";
 import { sfx } from "../game/sound";
+import { DailyList, SecretList } from "./LivingPanels";
+import { chestSpots } from "./living";
 
 export const Modal = ({ title, onClose, children, testid, wide }) => (
   <div className="mars-modal-bg" onClick={onClose}>
@@ -51,6 +53,7 @@ export const MapPanel = ({ G, onClose }) => {
     if (G.emerg?.type === "rescue" && layer === "surface") dot(G.emerg.x, G.emerg.y, "#ef233c", 7);
     const t = resolveTarget(G, W);
     if (t && t.layer === layer) { ctx.strokeStyle = "#ffc93c"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(t.x * s, t.y * s, 10, 0, 7); ctx.stroke(); }
+    if (layer === "under" && G.flags.treasureMap) chestSpots(W).filter((c) => !G.chests.includes(c.id)).forEach((c) => dot(c.x, c.y, "#d4af37", 4));
     if (G.layer === layer) { dot(G.p.x, G.p.y, "#ffffff", 6); dot(G.p.x, G.p.y, "#3a86ff", 3); }
   });
   const click = (e) => {
@@ -86,7 +89,7 @@ export const BagPanel = ({ G, onClose }) => {
       <div className="space-y-2 mt-1">
         {of("use").length ? of("use").map((k) => (
           <div key={k} className="mars-row"><div className="flex-1 font-bold">{ITEMS[k].name} ×{count(G, k)} <span className="text-xs text-navy/60">{ITEMS[k].desc}</span></div>
-            <button className="toon-btn toon-btn-orange !py-1 !px-3 text-xs" data-testid={`use-${k}`} onClick={() => { consumeItem(G, k); sfx.success(); refresh(); }}>Use</button></div>
+            <button className="toon-btn toon-btn-orange !py-1 !px-3 text-xs" data-testid={`use-${k}`} onClick={() => { if (consumeItem(G, k)) sfx.success(); else sfx.fail(); refresh(); }}>Use</button></div>
         )) : <p className="text-sm font-bold text-navy/60">No supplies. Print some at the 3D printer!</p>}
       </div>
       <h3 className="font-display text-xs text-orange mt-4">Gear & items</h3>
@@ -104,9 +107,11 @@ export const QuestPanel = ({ G, onClose }) => {
   const [tab, setTab] = useState("story");
   return (
     <Modal title="Quest Log" onClose={onClose} testid="quest-panel" wide>
-      <Tabs tabs={[["story", "Story missions"], ["side", "Side quests"]]} value={tab} onChange={setTab} />
+      <Tabs tabs={[["story", "Story missions"], ["side", "Side quests"], ["daily", "Daily"], ["secret", "Secret"]]} value={tab} onChange={setTab} />
+      {tab === "daily" && <DailyList G={G} />}
+      {tab === "secret" && <SecretList G={G} />}
       <div className="space-y-2 max-h-[58vh] overflow-y-auto pr-1">
-        {tab === "story" ? MISSIONS.map((m, i) => (
+        {tab === "daily" || tab === "secret" ? null : tab === "story" ? MISSIONS.map((m, i) => (
           <div key={i} className={`mars-row ${i === G.story ? "mars-row-now" : ""}`} data-testid={`story-${i}`}>
             {i < G.story ? <Check className="text-teal-700" /> : i === G.story ? <span className="font-display text-orange">▶</span> : <Lock size={16} className="text-navy/40" />}
             <div className="flex-1"><div className="font-display text-xs">{i + 1}. {i <= G.story ? m.title : "???"}</div>{i === G.story && <div className="text-sm font-semibold">{m.goal}</div>}</div>
@@ -136,6 +141,9 @@ export const TrophyPanel = ({ G, onClose }) => {
         <span className="mars-chip">Relics {relics.length}/12</span>
         <span className="mars-chip">Discoveries {G.scanned.length}/12</span>
         <span className="mars-chip">Easter eggs {G.eggs.length}/5</span>
+        <span className="mars-chip">Chests {G.chests.length}/8</span>
+        <span className="mars-chip">Wrecks {G.salvaged.length}/4</span>
+        <span className="mars-chip">Races won {G.stats.raceWins}</span>
       </div>
       <div className="max-h-[55vh] overflow-y-auto pr-1">
         <div className="grid sm:grid-cols-2 gap-2">

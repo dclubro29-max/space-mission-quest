@@ -1,6 +1,7 @@
 import { DAY_LEN, NPCS, MISSIONS, QUESTS, ACHIEVEMENTS, BOB_LINES, ITEMS, RECIPES, UPGRADES, upgradeCost, BUILDINGS, COLLECTIBLES, ENDINGS, COLONY_SPOTS } from "./content";
 import { getWorld, blocked, SIZES } from "./world";
 import { hash2 } from "./noise";
+import { schedule, livingTarget, secretTarget, livingDaily, livingUpdate, livingNear, livingInteract, sfxEv, cutscene, celebrate, burst, eventOn } from "./living";
 
 const SAVE_KEY = "explore-mars-save-v1";
 export const FOG = 3;
@@ -28,12 +29,13 @@ export function newGame(name) {
   const c = colonyPos(getWorld(false));
   return {
     v: 1, name, layer: "surface", p: { x: c.x, y: c.y + 3 }, heading: 0,
-    o2: 100, hp: 100, en: 100, rad: 0, credits: 60, inv: { o2_canister: 2, repair_kit: 1 },
+    o2: 100, hp: 100, en: 100, rad: 0, credits: 120, inv: { o2_canister: 2, repair_kit: 1 },
     time: DAY_LEN * 0.05, sol: 1, weather: { type: "clear", t: 140 }, emerg: null, nextEmerg: 180,
     story: 0, storyStarted: false, missionBase: {}, flags: {}, quests: {}, up: {}, buildings: [],
     scanned: [], visited: {}, collected: [], eggs: [], nodes: {}, tempNodes: [], achievements: [],
     habitat: { wall: 0, floor: 0, decor: [] }, rover: null, inRover: false, waypoint: null,
-    stats: { dist: 0, mined: 0, craftedTotal: 0, crafted: {}, jetTime: 0, storms: 0, nightTime: 0, rescues: 0, sold: 0 },
+    stats: { dist: 0, mined: 0, craftedTotal: 0, crafted: {}, jetTime: 0, storms: 0, nightTime: 0, rescues: 0, sold: 0, photos: 0, raceWins: 0, races: 0, tours: 0, dailyDone: 0 },
+    salvaged: [], chests: [], robots: [], robotStore: {}, roverStyle: { color: 0, decal: 0 }, secret: { idx: 0, started: false }, daily: null, worldEvent: null, tour: null, race: null, colonyLevel: 1,
     fogData: {},
   };
 }
@@ -45,7 +47,7 @@ const tmpState = (G) => {
     for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) === 49 ? 1 : 0;
     fog[k] = a;
   });
-  return { fog, queue: [], bobCd: {}, bobLast: -99, clock: 0, idle: 0, meteors: [], tick: 0, achTick: 0, near: null, wasNight: false, lowCd: 0 };
+  return { fog, parts: [], queue: [], bobCd: {}, bobLast: -99, clock: 0, idle: 0, meteors: [], tick: 0, achTick: 0, near: null, wasNight: false, lowCd: 0 };
 };
 
 export function loadGame(name) {
@@ -79,7 +81,7 @@ export function npcPos(G, W, id) {
   const c = colonyPos(W);
   const wob = Math.sin(G.time * 0.4 + id.length) * 0.6;
   if (id === "vega" && G.story >= 12) return { layer: "surface", x: c.x - 2 + wob, y: c.y + 6 };
-  if (n.at) return { layer: "surface", x: c.x + n.at[0] + wob, y: c.y + n.at[1] };
+  if (n.at) { const s = schedule(G, id, n.at); return { layer: "surface", x: c.x + s.x + (s.asleep ? 0 : wob), y: c.y + s.y, asleep: s.asleep }; }
   const p = W[n.layer || "surface"].pois.find((q) => q.id === n.poi);
   return { layer: n.layer || "surface", x: p.x + 1.6, y: p.y + 0.4 };
 }
@@ -87,9 +89,11 @@ export const spotPos = (W, key, def) => { const c = colonyPos(W); return { x: c.
 
 export function resolveTarget(G, W) {
   if (G.emerg?.type === "rescue") return { layer: "surface", x: G.emerg.x, y: G.emerg.y, label: `Rescue ${G.emerg.who}` };
+  const lt = livingTarget(G, W);
+  if (lt) return lt;
   if (G.waypoint) return { ...G.waypoint, label: "Waypoint" };
   const m = MISSIONS[G.story];
-  if (!m) return null;
+  if (!m) return secretTarget(G, W);
   const o = m.obj, id = o.poi || m.target || (o.type === "visitAll" && o.pois.find((p) => !G.visited[p]));
   if (o.type === "talk") { const p = npcPos(G, W, o.npc); return p && { ...p, label: NPCS[o.npc].name }; }
   if (id && COLONY_SPOTS[id]) return { layer: "surface", ...spotPos(W, id, COLONY_SPOTS[id]), label: COLONY_SPOTS[id].name };
@@ -118,10 +122,14 @@ function daily(G) {
   if (b("greenhouse")) add(G, "repair_kit", 1);
   if (b("drones")) { add(G, "iron", 3); add(G, "silicon", 3); }
   toast(G, `Sol ${G.sol} begins. Market prices changed!`);
+  livingDaily(G, world(G));
 }
 export const priceMult = (G, item) => 0.7 + hash2(G.sol, Object.keys(ITEMS).indexOf(item), 9) * 0.6;
 export const sellPrice = (G, item) => Math.max(1, Math.round(ITEMS[item].price * priceMult(G, item) * (G.buildings.includes("refinery") ? 1.2 : 1)));
-export const buyPrice = (G, item) => (ITEMS[item].kind === "decor" ? ITEMS[item].price : Math.round(ITEMS[item].price * priceMult(G, item) * 1.2));
+export const buyPrice = (G, item) => Math.round((ITEMS[item].kind === "decor" ? ITEMS[item].price : ITEMS[item].price * priceMult(G, item) * 1.2) * (G.buildings.includes("market_street") ? 0.85 : 1) * (eventOn(G, "caravan") ? 0.7 : 1));
+const NAMES = { credits: "credits" };
+export const missing = (G, cost) => { const k = Object.keys(cost).find((x) => count(G, x) < cost[x]); return k && (NAMES[k] || ITEMS[k].name); };
+const broke = (G, cost) => { toast(G, `Not enough ${missing(G, cost)}!`); bob(G, "broke", 20); return false; };
 
 function nextWeather(G, outsideStorm) {
   const w = G.weather.type;
@@ -290,6 +298,7 @@ export function update(G, inp, dt) {
   if (T.tick > 0.5) { T.tick = 0; checkProgress(G); }
   T.achTick += dt;
   if (T.achTick > 2) { T.achTick = 0; checkAchievements(G); }
+  livingUpdate(G, W, dt, mag > 0.05);
   T.near = findNear(G, W);
 }
 
@@ -299,7 +308,9 @@ export function findNear(G, W) {
   const push = (o, x, y, rad = 1.8) => { const d = Math.hypot(x - P.x, y - P.y); if (d < rad) opts.push({ ...o, d }); };
   if (G.rover && !G.inRover && G.layer === "surface") push({ kind: "rover", label: "Get in the rover" }, G.rover.x, G.rover.y, 2.2);
   if (G.layer === "surface") Object.entries(COLONY_SPOTS).forEach(([k, s]) => { const p = spotPos(W, k, s); push({ kind: "spot", id: k, label: `Open ${s.name}` }, p.x, p.y, s.r + 1.2); });
-  Object.keys(NPCS).forEach((k) => { const p = npcPos(G, W, k); if (p && p.layer === G.layer) push({ kind: "npc", id: k, label: `Talk to ${NPCS[k].name}` }, p.x, p.y, 2); });
+  const talkTo = MISSIONS[G.story]?.obj.npc;
+  Object.keys(NPCS).forEach((k) => { const p = npcPos(G, W, k); if (p && p.layer === G.layer) push({ kind: "npc", id: k, asleep: p.asleep, label: p.asleep ? `${NPCS[k].name} (sleeping)` : `Talk to ${NPCS[k].name}`, pri: k === talkTo ? 1.2 : 0 }, p.x, p.y, 2); });
+  livingNear(G, W, push);
   W.collectibles.forEach((c) => { if (c.layer === G.layer && !G.collected.includes(c.id)) push({ kind: "pickup", id: c.id, label: `Pick up ${c.name}` }, c.x, c.y, 1.6); });
   if (G.story >= 12) W.fragments.forEach((c) => { if (c.layer === G.layer && !G.collected.includes(c.id)) push({ kind: "pickup", id: c.id, label: "Pick up Memory Core Fragment" }, c.x, c.y, 1.6); });
   [...L.nodes, ...G.tempNodes.filter((t) => t.layer === G.layer)].forEach((nd) => { if (nodeLeft(G, nd) > 0) push({ kind: "node", node: nd, label: `Mine ${ITEMS[nd.type].name}` }, nd.x, nd.y, 1.7); });
@@ -309,8 +320,8 @@ export function findNear(G, W) {
     if (p.type === "science" && !G.scanned.includes(p.id)) push({ kind: "poi", poi: p, label: `Scan: ${p.name}` }, p.x, p.y, 2.4);
     else if (lab) push({ kind: "poi", poi: p, label: lab }, p.x, p.y, 2.4);
   });
-  if (G.inRover) return opts.filter((o) => o.kind === "node" || o.kind === "poi").sort((a, b) => a.d - b.d)[0] || { kind: "rover", label: "Get out of the rover" };
-  return opts.sort((a, b) => a.d - b.d)[0] || null;
+  if (G.inRover) return opts.filter((o) => o.kind !== "chest").sort((a, b) => a.d - b.d)[0] || { kind: "rover", label: "Get out of the rover" };
+  return opts.sort((a, b) => a.d - (a.pri || 0) - (b.d - (b.pri || 0)))[0] || null;
 }
 
 const SIGNALS = {
@@ -329,6 +340,7 @@ const EGGS = {
 export function interact(G, near, ui) {
   const W = world(G);
   if (!near) return;
+  if (livingInteract(G, near, ui, W)) return;
   const c = colonyPos(W);
   switch (near.kind) {
     case "rover":
@@ -339,13 +351,14 @@ export function interact(G, near, ui) {
     case "npc": G.flags[`talk_${near.id}`] = true; return ui.talk(near.id);
     case "pickup": {
       const col = COLLECTIBLES.find((x) => x.id === near.id);
-      G.collected.push(near.id);
+      G.collected.push(near.id); sfxEv(G, "pickup");
       if (col) { dialog(G, [["bob", `Rare collectible: ${col.name}! (${G.collected.filter((x) => x.startsWith("c_")).length}/12)`], ["bob", col.text]]); bob(G, "collectible", 0); }
       else { add(G, "core_fragment"); toast(G, `Memory Core Fragment ${count(G, "core_fragment")}/3`); }
       return;
     }
     case "node": {
-      const nd = near.node, amt = 1 + (G.inRover ? G.up.rover_drill || 0 : 0) + (R() < 0.3 ? 1 : 0);
+      const nd = near.node, amt = 1 + (G.inRover ? G.up.rover_drill || 0 : 0) + (R() < 0.3 ? 1 : 0) + (nd.type === "crystal" && eventOn(G, "bloom") ? 2 : 0);
+      burst(G, nd.x, nd.y, 10, [ITEMS[nd.type].color, "#fff4e0"], 2.5); sfxEv(G, "mine");
       add(G, nd.type, amt); G.stats.mined += amt;
       const left = nodeLeft(G, nd) - 1;
       if (nd.id.startsWith("m")) G.tempNodes = G.tempNodes.filter((t) => t.id !== nd.id);
@@ -449,7 +462,8 @@ function checkAchievements(G) {
 // ---------- colony actions ----------
 export function craft(G, item) {
   const cost = RECIPES[item];
-  if (!canPay(G, cost) || (item === "jetpack" && G.flags.jetpack)) return false;
+  if (item === "jetpack" && G.flags.jetpack) return false;
+  if (!canPay(G, cost)) return broke(G, cost);
   pay(G, cost);
   if (item === "jetpack") G.flags.jetpack = true; else add(G, item);
   G.stats.crafted[item] = (G.stats.crafted[item] || 0) + 1; G.stats.craftedTotal++;
@@ -458,35 +472,41 @@ export function craft(G, item) {
 }
 export function upgrade(G, key) {
   const lvl = G.up[key] || 0, u = UPGRADES[key], cost = upgradeCost(key, lvl);
-  if (lvl >= 3 || (u.needs && !G.flags[u.needs]) || !canPay(G, cost)) return false;
+  if (lvl >= 3) return false;
+  if (u.needs && !G.flags[u.needs]) { toast(G, `You need the ${u.needs} first!`); return false; }
+  if (!canPay(G, cost)) return broke(G, cost);
   pay(G, cost); G.up[key] = lvl + 1;
   return true;
 }
 export function build(G, key) {
   const cost = BUILDINGS[key].cost;
-  if (G.buildings.includes(key) || !canPay(G, cost)) return false;
-  pay(G, cost); G.buildings.push(key); bob(G, "build", 0);
+  if (G.buildings.includes(key)) return false;
+  if (!canPay(G, cost)) return broke(G, cost);
+  pay(G, cost); G.buildings.push(key); bob(G, "build", 0); celebrate(G, world(G));
   return true;
 }
 export function sell(G, item, n) {
   n = Math.min(n, count(G, item));
   if (n <= 0) return;
-  G.inv[item] -= n; G.credits += sellPrice(G, item) * n; G.stats.sold += n;
+  G.inv[item] -= n; G.credits += sellPrice(G, item) * n; G.stats.sold += n; sfxEv(G, "coin");
 }
 export function buy(G, item) {
   const p = buyPrice(G, item);
-  if (G.credits < p) return false;
-  G.credits -= p; add(G, item); bob(G, "bought", 120);
+  if (G.credits < p) return broke(G, { credits: p });
+  G.credits -= p; add(G, item); bob(G, "bought", 120); sfxEv(G, "coin");
   return true;
 }
 export function consumeItem(G, item) {
   const u = ITEMS[item].use;
-  if (!u || count(G, item) <= 0) return;
+  if (!u || count(G, item) <= 0) return false;
+  const full = (u.oxygen && G.o2 >= maxO2(G) - 1) || (u.health && G.hp >= 99 && G.emerg?.type !== "leak") || (u.energy && G.en >= 99) || (u.radiation && G.rad <= 1);
+  if (full) { toast(G, `${ITEMS[item].name}: that's already full!`); bob(G, "full", 30); return false; }
   G.inv[item]--;
   if (u.oxygen) G.o2 = Math.min(maxO2(G), G.o2 + u.oxygen);
   if (u.health) { G.hp = Math.min(100, G.hp + u.health); if (G.emerg?.type === "leak") { G.emerg = null; toast(G, "Suit leak fixed!"); } }
   if (u.energy) G.en = Math.min(100, G.en + u.energy);
   if (u.radiation) G.rad = Math.max(0, G.rad + u.radiation);
+  return true;
 }
 export function sleep(G) {
   if (!isNight(G)) return false;
@@ -498,6 +518,8 @@ export function chooseEnding(G, key) {
   G.flags.ending = key;
   if (key === "awaken") G.flags.terraformed = true;
   if (COLLECTIBLES.every((c) => G.collected.includes(c.id))) G.flags.secretEnding = true;
+  cutscene(G, key);
+  if (G.flags.secretEnding) cutscene(G, "secret");
   const e = ENDINGS[key], lines = [["bob", e.title], ["bob", e.text], ["bob", e.bob]];
   if (G.flags.secretEnding) lines.push(["bob", ENDINGS.secret.title], ["bob", ENDINGS.secret.text], ["bob", ENDINGS.secret.bob]);
   dialog(G, lines);

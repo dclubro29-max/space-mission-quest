@@ -9,10 +9,10 @@ import { chestSpots } from "./living";
 
 export const Modal = ({ title, onClose, children, testid, wide }) => (
   <div className="mars-modal-bg" onClick={onClose}>
-    <div className={`panel mars-modal ${wide ? "mars-modal-wide" : ""}`} data-testid={testid} onClick={(e) => e.stopPropagation()}>
+    <div className={`panel mars-modal ${wide ? "mars-modal-wide" : ""}`} data-testid={testid} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-3 gap-2">
         <h2 className="font-display text-lg text-navy">{title}</h2>
-        <button data-testid="modal-close-btn" aria-label="Close" onClick={onClose}><X /></button>
+        <button autoFocus data-testid="modal-close-btn" aria-label="Close" onClick={onClose}><X /></button>
       </div>
       {children}
     </div>
@@ -30,7 +30,7 @@ export const MapPanel = ({ G, onClose }) => {
   const [layer, setLayer] = useState(G.layer);
   const [, refresh] = useReducer((x) => x + 1, 0);
   const ref = useRef(null);
-  const size = Math.min(560, window.innerWidth - 70, window.innerHeight - 230);
+  const size = Math.max(120, Math.min(560, window.innerWidth - 70, window.innerHeight - 210));
   const W = world(G), L = W[layer], N = SIZES[layer], s = size / N;
   useEffect(() => {
     const ctx = ref.current.getContext("2d");
@@ -170,7 +170,7 @@ export const MenuPanel = ({ G, onClose, onExit }) => {
         <p className="text-navy/60">Progress saves automatically on this device every few seconds.</p>
       </div>
       <div className="flex flex-col gap-2 mt-4">
-        <button className="toon-btn toon-btn-navy justify-center" data-testid="menu-save-btn" onClick={() => { saveGame(G); toast(G, "Game saved!"); onClose(); }}><Save size={16} /> Save now</button>
+        <button className="toon-btn toon-btn-navy justify-center" data-testid="menu-save-btn" onClick={() => { toast(G, saveGame(G) ? "Game saved!" : "Unable to save on this device."); onClose(); }}><Save size={16} /> Save now</button>
         <button className="toon-btn toon-btn-orange justify-center" data-testid="menu-exit-btn" onClick={onExit}><LogOut size={16} /> Save & finish (colony, credits / title)</button>
         <button className="toon-btn toon-btn-red justify-center" data-testid="menu-reset-btn" onClick={() => { if (!confirm) return setConfirm(true); deleteSave(); window.location.reload(); }}>
           <Trash2 size={16} /> {confirm ? "Tap again to erase ALL Mars progress" : "Restart Explore Mars"}

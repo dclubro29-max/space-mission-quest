@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { MotionConfig, useReducedMotion } from "framer-motion";
 import { getWorld } from "./world";
 import { loadGame, saveGame, update, interact, world } from "./engine";
 import { render } from "./render";
@@ -14,6 +15,7 @@ const KEYMAP = { ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1
 const PANELS = { map: MapPanel, bag: BagPanel, quests: QuestPanel, trophies: TrophyPanel, menu: MenuPanel, craft: CraftPanel, upgrades: CraftPanel, market: MarketPanel, build: BuildPanel, habitat: HabitatPanel, ending: EndingPanel, album: AlbumPanel, robots: RobotsPanel, tours: ToursPanel, lux: LuxPanel };
 
 export default function MarsGame({ name, onExit }) {
+  const reduce = useReducedMotion();
   const cvs = useRef(null);
   const G = useRef(null);
   const keys = useRef(new Set());
@@ -35,7 +37,10 @@ export default function MarsGame({ name, onExit }) {
     return Object.fromEntries(Object.entries(src).map(([k, s]) => { const i = new Image(); i.src = s; return [k, i]; }));
   }, []);
   paused.current = !!(panel || talk || dlg || cuts.length);
-  if (G.current) G.current.tmp.photo = photo;
+  if (G.current) {
+    G.current.tmp.photo = photo;
+    G.current.tmp.reducedMotion = reduce;
+  }
   const ui = useMemo(() => ({ open: (p) => { sfx.select(); setPanel(p); }, talk: (id) => { sfx.select(); setTalk(id); } }), []);
 
   const doInteract = useCallback(() => { if (!paused.current && G.current) { interact(G.current, G.current.tmp.near, ui); sfx.click(); } }, [ui]);
@@ -64,8 +69,8 @@ export default function MarsGame({ name, onExit }) {
       const g = G.current;
       let x = joy.current.x, y = joy.current.y;
       keys.current.forEach((k) => { if (KEYMAP[k]) { x += KEYMAP[k][0]; y += KEYMAP[k][1]; } });
-      if (!paused.current) update(g, { x, y, jet: jet.current || keys.current.has("Space") }, dt);
-      render(ctx, g, c.clientWidth, c.clientHeight, imgs);
+      if (!paused.current && !document.hidden) update(g, { x, y, jet: jet.current || keys.current.has("Space") }, dt);
+      if (!document.hidden) render(ctx, g, c.clientWidth, c.clientHeight, imgs);
       hudT += dt; saveT += dt;
       if (hudT > 0.15) {
         hudT = 0;
@@ -91,11 +96,14 @@ export default function MarsGame({ name, onExit }) {
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); window.removeEventListener("beforeunload", save); document.removeEventListener("visibilitychange", save); save(); };
   }, [ready, imgs]);
 
+  const nextLine = useCallback(() => { sfx.click(); setDlg((d) => (d && d.i < d.lines.length - 1 ? { ...d, i: d.i + 1 } : null)); }, []);
+
   useEffect(() => {
     const down = (e) => {
-      if (e.target.tagName === "INPUT") return;
-      if (e.code === "Escape") { setPanel(null); setTalk(null); return; }
-      if (paused.current) { if (dlg && (e.code === "Enter" || e.code === "KeyE" || e.code === "Space")) { e.preventDefault(); nextLine(); } return; }
+      if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+      if (e.code === "Escape") { setPanel(null); setTalk(null); setPhoto(false); return; }
+      if (e.target.closest?.("button, a") && (e.code === "Enter" || e.code === "Space")) return;
+      if (paused.current) { if (!e.repeat && dlg && (e.code === "Enter" || e.code === "KeyE" || e.code === "Space")) { e.preventDefault(); nextLine(); } return; }
       if (KEYMAP[e.code] || e.code === "Space") e.preventDefault();
       keys.current.add(e.code);
       if (e.repeat) return;
@@ -105,15 +113,13 @@ export default function MarsGame({ name, onExit }) {
       if (e.code === "KeyI") setPanel("bag");
       if (e.code === "KeyQ") setPanel("quests");
       if (e.code === "KeyP") setPhoto((p) => !p);
-      if (e.code === "KeyH" && G.current.inRover) sfx.horn();
+      if (e.code === "KeyH" && G.current?.inRover) sfx.horn();
     };
     const up = (e) => keys.current.delete(e.code);
-    const blur = () => keys.current.clear();
+    const blur = () => { keys.current.clear(); joy.current = { x: 0, y: 0 }; jet.current = false; };
     window.addEventListener("keydown", down); window.addEventListener("keyup", up); window.addEventListener("blur", blur);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); window.removeEventListener("blur", blur); };
-  });
-
-  const nextLine = () => { sfx.click(); setDlg((d) => (d && d.i < d.lines.length - 1 ? { ...d, i: d.i + 1 } : null)); };
+  }, [dlg, doInteract, nextLine, toggleRover]);
   const P = panel && PANELS[panel];
   const g = G.current;
 
@@ -124,12 +130,13 @@ export default function MarsGame({ name, onExit }) {
   );
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="mars-root" data-testid="mars-game">
-      <canvas ref={cvs} className="mars-canvas" data-testid="mars-canvas" style={{ filter: photo ? FILTERS[filter][1] : "none" }} />
-      {photo ? <PhotoOverlay G={g} canvasRef={cvs} filter={filter} setFilter={setFilter} onClose={() => setPhoto(false)} /> : <>
+      <canvas ref={cvs} className="mars-canvas" aria-hidden="true" data-testid="mars-canvas" style={{ filter: photo ? FILTERS[filter][1] : "none" }} />
+      {photo ? <PhotoOverlay G={g} canvasRef={cvs} filter={filter} setFilter={setFilter} onClose={() => setPhoto(false)} /> : <div inert={paused.current}>
       <Hud G={g} tick={hud} onOpen={ui.open} onPhoto={() => setPhoto(true)} />
       <Controls G={g} joy={joy} jet={jet} onInteract={doInteract} onRover={toggleRover} />
-      </>}
+      </div>}
       <BobToast msg={bobMsg} />
       <Toasts items={toasts} />
       {cuts.length > 0 && <Cutscene key={cuts[0] + cuts.length} id={cuts[0]} onDone={() => setCuts((c) => c.slice(1))} />}
@@ -137,5 +144,6 @@ export default function MarsGame({ name, onExit }) {
       {talk && !dlg && <NpcPanel G={g} id={talk} onClose={() => setTalk(null)} onShop={() => { setTalk(null); setPanel("market"); }} />}
       {P && !dlg && <P G={g} tab={panel} onClose={() => setPanel(null)} onExit={() => { saveGame(g); onExit(); }} />}
     </div>
+    </MotionConfig>
   );
 }

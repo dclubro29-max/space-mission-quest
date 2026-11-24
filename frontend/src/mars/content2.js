@@ -110,8 +110,6 @@ ACHIEVEMENTS.push(...[
 ].map(([id, name, desc, check]) => ({ id, name, desc, check })));
 
 Object.assign(BOB_LINES, {
-  broke: ["You're broke. Welcome to adulthood, Mars edition.", "Not enough! Have you tried... having more?", "Your wallet is emptier than the Martian atmosphere."],
-  full: ["That's already full. Wasting supplies? Not on my watch."],
   photo: ["Say 'red planet'! Click. Gorgeous. I mean me, obviously."],
   race: ["Race me? I've been practicing since 2047. Prepare to eat dust. Literally."],
   raceWin: ["You beat me?! The rover was cheating. Rematch. Tomorrow. Maybe."],

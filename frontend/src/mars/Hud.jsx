@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Wind, Heart, Zap, Radiation, Map, Backpack, ScrollText, Trophy, Menu, Sun, Moon, CloudFog, Tornado, Coins, Hand, Rocket, CarFront, TriangleAlert, Camera, Images, Megaphone, Sparkles } from "lucide-react";
 import { WORLD_EVENTS } from "./content2";
 import { sfx } from "../game/sound";
 import { MISSIONS } from "./content";
-import { maxO2, isNight } from "./engine";
+import { maxO2, isNight, navPoint, resolveTarget, world } from "./engine";
 import { DAY_LEN } from "./content";
 
 const Bar = ({ icon: Icon, v, max = 100, color, label, warn }) => (
   <div className={`mars-bar ${warn ? "mars-bar-warn" : ""}`} data-testid={`hud-${label}`} title={label}>
     <Icon size={14} />
-    <div className="mars-bar-track"><div className="mars-bar-fill" style={{ width: `${(v / max) * 100}%`, background: color }} /></div>
+    <div className="mars-bar-track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.round(v)}><div className="mars-bar-fill" style={{ width: `${(v / max) * 100}%`, background: color }} /></div>
     <span>{Math.round(v)}</span>
   </div>
 );
@@ -19,11 +19,18 @@ const clock = (G) => {
   const ph = (G.time % DAY_LEN) / DAY_LEN, h = (6 + ph * 24) % 24;
   return `${String(Math.floor(h)).padStart(2, "0")}:${String(Math.floor((h % 1) * 60)).padStart(2, "0")}`;
 };
+const COMPASS = ["E", "SE", "S", "SW", "W", "NW", "N", "NE"];
 const WEATHER = { clear: [Sun, "Clear"], dusty: [CloudFog, "Dusty"], storm: [Tornado, "DUST STORM"] };
 const EMERG = { flare: "SOLAR FLARE: find shelter or go underground!", meteor: "METEOR SHOWER: dodge the shadows!", rescue: "RESCUE: reach the stranded colonist!", leak: "SUIT LEAK: use a repair kit!" };
 
 export const Hud = ({ G, onOpen, onPhoto }) => {
   const m = MISSIONS[G.story];
+  const W = world(G);
+  const target = navPoint(G, W, resolveTarget(G, W));
+  const dx = target?.x - G.p.x;
+  const dy = target?.y - G.p.y;
+  const meters = target && Math.round(Math.hypot(dx, dy) * 10);
+  const bearing = COMPASS[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8];
   const [WIcon, wName] = WEATHER[G.weather.type];
   const night = isNight(G);
   const btns = [["map", Map, "Map (M)"], ["bag", Backpack, "Bag (I)"], ["quests", ScrollText, "Quests (Q)"], ["trophies", Trophy, "Trophies"], ["album", Images, "Photo album"], ["menu", Menu, "Menu"]];
@@ -48,6 +55,7 @@ export const Hud = ({ G, onOpen, onPhoto }) => {
       <div className="mars-tracker" data-testid="mission-tracker">
         <div className="font-display text-[0.65rem] text-orange">{m ? `MISSION ${G.story + 1}/15 · ${m.title}` : "STORY COMPLETE"}</div>
         <div className="text-sm font-bold leading-tight">{m ? m.goal : "Mars is yours. Finish side quests and find every secret!"}</div>
+        {target && <div className="mars-tracker-target"><b>{target.label}</b> · {meters < 20 ? "Nearby" : meters + " m · " + bearing}</div>}
       </div>
       {G.emerg && (
         <div className="mars-emerg" data-testid="emergency-banner"><TriangleAlert size={16} className="blink" /> {EMERG[G.emerg.type]} <b>{Math.ceil(G.emerg.t)}s</b></div>
@@ -58,21 +66,27 @@ export const Hud = ({ G, onOpen, onPhoto }) => {
 
 const Joystick = ({ joy }) => {
   const base = useRef(null);
-  const on = useRef(false);
+  const on = useRef(null);
+  useEffect(() => () => { joy.current = { x: 0, y: 0 }; }, [joy]);
   const [k, setK] = useState({ x: 0, y: 0 });
   const move = (e) => {
-    if (!on.current) return;
+    if (on.current !== e.pointerId) return;
     const r = base.current.getBoundingClientRect(), max = r.width / 2;
     let x = e.clientX - (r.left + max), y = e.clientY - (r.top + max);
     const d = Math.hypot(x, y);
     if (d > max) { x *= max / d; y *= max / d; }
     joy.current = { x: x / max, y: y / max }; setK({ x, y });
   };
-  const end = () => { on.current = false; joy.current = { x: 0, y: 0 }; setK({ x: 0, y: 0 }); };
+  const end = (e) => {
+    if (on.current !== e.pointerId) return;
+    on.current = null;
+    joy.current = { x: 0, y: 0 };
+    setK({ x: 0, y: 0 });
+  };
   return (
     <div ref={base} className="joy" data-testid="mars-joystick"
-      onPointerDown={(e) => { on.current = true; e.currentTarget.setPointerCapture(e.pointerId); move(e); }}
-      onPointerMove={move} onPointerUp={end} onPointerCancel={end}>
+      onPointerDown={(e) => { if (on.current !== null) return; on.current = e.pointerId; e.currentTarget.setPointerCapture(e.pointerId); move(e); }}
+      onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}>
       <div className="joy-knob" style={{ transform: `translate(${k.x}px, ${k.y}px)` }} />
     </div>
   );
@@ -81,7 +95,7 @@ const Joystick = ({ joy }) => {
 export const Controls = ({ G, joy, jet, onInteract, onRover }) => {
   const near = G.tmp.near;
   const touch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  const hold = (v) => () => { jet.current = v; };
+  useEffect(() => () => { jet.current = false; }, [jet]);
   return (
     <>
       {touch && <Joystick joy={joy} />}
@@ -92,7 +106,7 @@ export const Controls = ({ G, joy, jet, onInteract, onRover }) => {
       )}
       <div className="mars-actions">
         {G.flags.jetpack && !G.inRover && (
-          <button className="mars-action" data-testid="mars-jet-btn" onPointerDown={hold(true)} onPointerUp={hold(false)} onPointerLeave={hold(false)} onPointerCancel={hold(false)}>
+          <button className="mars-action" data-testid="mars-jet-btn" onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); jet.current = true; }} onLostPointerCapture={() => { jet.current = false; }}>
             <Rocket size={20} /><span>Jet</span>
           </button>
         )}
@@ -108,11 +122,12 @@ export const Controls = ({ G, joy, jet, onInteract, onRover }) => {
 
 export const BobToast = ({ msg }) => {
   const [show, setShow] = useState(null);
+  const reduce = useReducedMotion();
   useEffect(() => { if (!msg) return; setShow(msg); const t = setTimeout(() => setShow(null), 6500); return () => clearTimeout(t); }, [msg]);
   return (
     <AnimatePresence>
       {show && (
-        <motion.div key={show.id} className="mars-bob" data-testid="mars-bob-toast" initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div key={show.id} className="mars-bob" data-testid="mars-bob-toast" initial={{ x: reduce ? 0 : -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ opacity: 0 }}>
           <img src="/game/bob.png" alt="B.O.B." className="w-12 bob-float" />
           <div className="bubble bubble-left text-sm">{show.text}</div>
         </motion.div>
@@ -122,7 +137,7 @@ export const BobToast = ({ msg }) => {
 };
 
 export const Toasts = ({ items }) => (
-  <div className="mars-toasts" data-testid="mars-toasts">
+  <div className="mars-toasts" data-testid="mars-toasts" role="status" aria-live="polite">
     <AnimatePresence>
       {items.map((t) => <motion.div key={t.id} className="mars-toast" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{t.text}</motion.div>)}
     </AnimatePresence>

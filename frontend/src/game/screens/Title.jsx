@@ -6,6 +6,7 @@ import { sfx } from "../sound";
 
 export default function Title({ onStart, onExplore }) {
   const unlocked = localStorage.getItem("explore-mars-unlocked") === "1";
+  const marsPreview = new URLSearchParams(window.location.search).get("preview") === "mars";
   const [name, setName] = useState("");
   const start = () => { sfx.fanfare(); onStart(name.trim() || "Rookie"); };
   return (
@@ -28,7 +29,7 @@ export default function Title({ onStart, onExplore }) {
               <Btn data-testid="start-game-btn" onClick={start}>Start <RocketIcon size={20} /></Btn>
             </div>
           </div>
-          {unlocked && <Btn variant="red" data-testid="title-explore-mars-btn" className="mt-4" onClick={() => onExplore(name.trim() || "Rookie")}><Globe size={20} /> EXPLORE MARS</Btn>}
+          {(unlocked || marsPreview) && <Btn variant="red" data-testid="title-explore-mars-btn" className="mt-4" onClick={() => { sfx.select(); onExplore(name.trim()); }}><Globe size={20} /> {unlocked ? "EXPLORE MARS" : "EXPLORE MARS PREVIEW"}</Btn>}
           <p className="text-cream/70 text-sm mt-4 font-semibold">A game by the Space Hackers team</p>
         </motion.div>
         <motion.div className="relative flex justify-center" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: "spring" }}>

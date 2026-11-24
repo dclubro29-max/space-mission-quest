@@ -68,3 +68,20 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Explore Mars Enhanced
+
+The winding terrain, landmarks, crew and save format build on the existing Explore Mars campaign.
+To build and test this branch independently, run the following from `frontend`.
+
+```sh
+npm install --legacy-peer-deps
+npm run build
+npm test -- --watchAll=false --runInBand
+```
+
+Serve the contents of `build` at the root of a local static web server. Open
+`/?preview=mars` for direct access to Explore Mars. The regular title screen
+continues to unlock Explore Mars after the story campaign. Saves use the
+existing `explore-mars-save-v1` format and stay with the browser and site origin.
+Explore Mars plays without the optional story leaderboard server.

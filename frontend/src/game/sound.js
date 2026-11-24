@@ -2,8 +2,10 @@ let ctx;
 let muted = false;
 
 const ac = () => {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === "suspended") ctx.resume();
+  const Audio = window.AudioContext || window.webkitAudioContext;
+  if (!Audio) return null;
+  if (!ctx) ctx = new Audio();
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
   return ctx;
 };
 
@@ -12,6 +14,7 @@ export const setMuted = (m) => { muted = m; };
 const tone = (freq, dur = 0.12, type = "square", vol = 0.06, delay = 0, slideTo) => {
   if (muted) return;
   const a = ac();
+  if (!a) return;
   const t = a.currentTime + delay;
   const o = a.createOscillator();
   const g = a.createGain();
@@ -28,6 +31,7 @@ const tone = (freq, dur = 0.12, type = "square", vol = 0.06, delay = 0, slideTo)
 const noise = (dur = 1.2, vol = 0.4) => {
   if (muted) return;
   const a = ac();
+  if (!a) return;
   const buf = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 2;
@@ -60,5 +64,14 @@ export const sfx = {
   pop: () => { noise(0.12, 0.2); tone(400 + Math.random() * 600, 0.25, "triangle", 0.03, 0.05, 1600); },
   horn: () => { tone(330, 0.25, "sawtooth", 0.05); tone(415, 0.25, "sawtooth", 0.05); },
   beep: () => tone(1046, 0.09, "square", 0.05),
+  marsSignal: () => {
+    tone(710, 0.10, "sine", 0.055, 0, 840);
+    tone(1040, 0.22, "triangle", 0.035, 0.13, 910);
+  },
+  marsWind: () => { noise(1.35, 0.14); tone(162, 0.6, "sine", 0.04, 0, 91); },
+  marsAirlock: () => {
+    noise(0.35, 0.12);
+    tone(112, 0.46, "sine", 0.08, 0, 53);
+  },
   sad: () => [392, 370, 349, 330].forEach((f, i) => tone(f, 0.45, "triangle", 0.06, i * 0.4)),
 };

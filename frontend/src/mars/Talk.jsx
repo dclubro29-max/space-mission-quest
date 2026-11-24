@@ -10,13 +10,13 @@ export const DialogBox = ({ line, name, onNext }) => {
   const s = SPEAKERS[who] || SPEAKERS.bob;
   return (
     <div className="mars-dialog-bg" onClick={onNext}>
-      <motion.div key={text} className="mars-dialog panel" data-testid="mars-dialog" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+      <motion.div key={text} className="mars-dialog panel" data-testid="mars-dialog" role="dialog" aria-modal="true" aria-label="Mission dialogue" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
         <img src={s.img} alt={s.name} className={`mars-dialog-img ${who === "bob" ? "bob-float" : ""}`} />
         <div className="flex-1 min-w-0">
           <div className="name-tag !static inline-block mb-2" style={{ background: who === "bob" ? "#ff7a1a" : "#14213d" }}>{who === "you" ? name : s.name}</div>
-          <p className="text-base sm:text-lg font-bold text-navy leading-snug" data-testid="mars-dialog-text">{text}</p>
+          <p aria-live="polite" className="text-base sm:text-lg font-bold text-navy leading-snug" data-testid="mars-dialog-text">{text}</p>
           <div className="flex justify-end mt-2">
-            <button data-testid="mars-dialog-next" className="toon-btn toon-btn-orange !py-1.5 !px-4 text-sm">Next <ChevronRight size={16} /></button>
+            <button autoFocus data-testid="mars-dialog-next" className="toon-btn toon-btn-orange !py-1.5 !px-4 text-sm">Next <ChevronRight size={16} /></button>
           </div>
         </div>
       </motion.div>
@@ -63,7 +63,7 @@ export const NpcPanel = ({ G, id, onClose, onShop }) => {
   const locked = qs.length - open.length;
   return (
     <div className="mars-modal-bg" onClick={onClose}>
-      <div className="panel mars-modal" data-testid="npc-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="panel mars-modal" data-testid="npc-panel" role="dialog" aria-modal="true" aria-label={n.name} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-4">
           <img src={n.img} alt={n.name} className="h-28 w-20 object-cover object-top rounded-xl border-4 border-[#111] bg-white" />
           <div className="flex-1">
@@ -71,7 +71,7 @@ export const NpcPanel = ({ G, id, onClose, onShop }) => {
             <div className="text-xs font-bold text-orange">{n.role}</div>
             <p className="bubble mt-2 text-sm">{GREET[id]}</p>
           </div>
-          <button data-testid="npc-close-btn" onClick={onClose} aria-label="Close"><X /></button>
+          <button autoFocus data-testid="npc-close-btn" onClick={onClose} aria-label="Close"><X /></button>
         </div>
         {id === "zip" && <button data-testid="npc-shop-btn" className="toon-btn toon-btn-orange mt-4 w-full justify-center" onClick={onShop}><Store size={18} /> Open shop</button>}
         <div className="mt-4 space-y-2 max-h-[45vh] overflow-y-auto pr-1">

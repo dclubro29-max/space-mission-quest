@@ -18,11 +18,17 @@ const emit = (G, e) => G.tmp.queue.push(e);
 export const toast = (G, text) => emit(G, { kind: "toast", text });
 export const dialog = (G, lines) => emit(G, { kind: "dialog", lines });
 export const bob = (G, key, cd = 45) => {
-  const t = G.tmp.clock, last = G.tmp.bobCd[key] || -999;
+  const lines = BOB_LINES[key];
+  if (!lines?.length) return;
+  const t = G.tmp.clock, last = G.tmp.bobCd[key] ?? -999;
   if (t - last < cd || t - G.tmp.bobLast < 8) return;
   G.tmp.bobCd[key] = t; G.tmp.bobLast = t;
-  const lines = BOB_LINES[key];
-  emit(G, { kind: "bob", text: lines[Math.floor(R() * lines.length)] });
+  const previous = G.tmp.bobPick[key];
+  const index = previous === undefined || lines.length === 1
+    ? Math.floor(R() * lines.length)
+    : (previous + 1 + Math.floor(R() * (lines.length - 1))) % lines.length;
+  G.tmp.bobPick[key] = index;
+  emit(G, { kind: "bob", text: lines[index] });
 };
 
 export function newGame(name) {
@@ -47,25 +53,37 @@ const tmpState = (G) => {
     for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) === 49 ? 1 : 0;
     fog[k] = a;
   });
-  return { fog, parts: [], queue: [], bobCd: {}, bobLast: -99, clock: 0, idle: 0, meteors: [], tick: 0, achTick: 0, near: null, wasNight: false, lowCd: 0 };
+  return { fog, parts: [], queue: [], bobCd: {}, bobPick: {}, bobLast: -99, clock: 0, idle: 0, meteors: [], tick: 0, achTick: 0, near: null, wasNight: false, lowCd: 0 };
 };
 
 export function loadGame(name) {
-  let G;
-  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s?.v === 1) G = { ...newGame(s.name || name), ...s, stats: { ...newGame(name).stats, ...s.stats } }; } catch { G = null; }
-  G = G || newGame(name);
+  blockSave = false;
+  const initial = newGame(name || "Rookie");
+  let G = initial;
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (saved?.v === 1) G = { ...initial, ...saved, stats: { ...initial.stats, ...saved.stats } };
+  } catch { /* invalid or unavailable save */ }
   if (name) G.name = name;
   G.tmp = tmpState(G);
   return G;
 }
-export const hasSave = () => !!localStorage.getItem(SAVE_KEY);
+export const hasSave = () => {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY))?.v === 1; } catch { return false; }
+};
 let blockSave = false;
-export const deleteSave = () => { blockSave = true; localStorage.removeItem(SAVE_KEY); };
+export const deleteSave = () => {
+  blockSave = true;
+  try { localStorage.removeItem(SAVE_KEY); } catch { /* storage unavailable */ }
+};
 export function saveGame(G) {
-  if (blockSave || !G) return;
+  if (blockSave || !G) return false;
   const { tmp, ...rest } = G;
   rest.fogData = Object.fromEntries(Object.entries(tmp.fog).map(([k, a]) => [k, Array.from(a).join("")]));
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(rest)); } catch { /* storage full */ }
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(rest));
+    return true;
+  } catch { return false; }
 }
 
 export const isNight = (G) => (G.time % DAY_LEN) / DAY_LEN > 0.7;
@@ -95,7 +113,7 @@ export function resolveTarget(G, W) {
   if (G.waypoint) return { ...G.waypoint, label: "Waypoint" };
   const m = MISSIONS[G.story];
   if (!m) return secretTarget(G, W);
-  const o = m.obj, id = o.poi || m.target || (o.type === "visitAll" && o.pois.find((p) => !G.visited[p]));
+  const o = m.obj, id = o.poi || m.target || (o.type === "decode" && o.pois.find((p) => !G.flags[`decoded_${p}`]));
   if (o.type === "talk") { const p = npcPos(G, W, o.npc); return p && { ...p, label: NPCS[o.npc].name }; }
   if (id && COLONY_SPOTS[id]) return { layer: "surface", ...spotPos(W, id, COLONY_SPOTS[id]), label: COLONY_SPOTS[id].name };
   if (id) for (const layer of ["surface", "under"]) { const p = W[layer].pois.find((q) => q.id === id); if (p) return { layer, x: p.x, y: p.y, label: p.name }; }
@@ -103,7 +121,12 @@ export function resolveTarget(G, W) {
     const need = Object.keys(o.items).find((k) => count(G, k) < o.items[k]);
     if (need === "core_fragment") { const f = W.fragments.find((x) => !G.collected.includes(x.id)); return f && { ...f, label: "Core fragment" }; }
     const L = W[G.layer];
-    const n = L.nodes.filter((x) => x.type === need && nodeLeft(G, x) > 0).sort((a, b) => dist(a, G.p) - dist(b, G.p))[0];
+    let n, nearest = Infinity;
+    for (const node of L.nodes) {
+      if (node.type !== need || nodeLeft(G, node) <= 0) continue;
+      const distance = dist(node, G.p);
+      if (distance < nearest) { n = node; nearest = distance; }
+    }
     return n && { layer: G.layer, x: n.x, y: n.y, label: ITEMS[need].name };
   }
   return null;
@@ -127,15 +150,22 @@ function daily(G) {
 }
 export const priceMult = (G, item) => 0.7 + hash2(G.sol, Object.keys(ITEMS).indexOf(item), 9) * 0.6;
 export const sellPrice = (G, item) => Math.max(1, Math.round(ITEMS[item].price * priceMult(G, item) * (G.buildings.includes("refinery") ? 1.2 : 1)));
-export const buyPrice = (G, item) => Math.round((ITEMS[item].kind === "decor" ? ITEMS[item].price : ITEMS[item].price * priceMult(G, item) * 1.2) * (G.buildings.includes("market_street") ? 0.85 : 1) * (eventOn(G, "caravan") ? 0.7 : 1));
+export const buyPrice = (G, item) => Math.max(sellPrice(G, item) + 1, Math.round((ITEMS[item].kind === "decor" ? ITEMS[item].price : ITEMS[item].price * priceMult(G, item) * 1.2) * (G.buildings.includes("market_street") ? 0.85 : 1) * (eventOn(G, "caravan") ? 0.7 : 1)));
 const NAMES = { credits: "credits" };
 export const missing = (G, cost) => { const k = Object.keys(cost).find((x) => count(G, x) < cost[x]); return k && (NAMES[k] || ITEMS[k].name); };
-const broke = (G, cost) => { toast(G, `Not enough ${missing(G, cost)}!`); bob(G, "broke", 20); return false; };
+const broke = (G, cost) => {
+  const shortfall = Object.entries(cost)
+    .filter(([item, amount]) => count(G, item) < amount)
+    .map(([item, amount]) => `${amount - count(G, item)} ${NAMES[item] || ITEMS[item].name}`);
+  toast(G, `Still needed: ${shortfall.join(", ")}.`);
+  bob(G, "broke", 20);
+  return false;
+};
 
 function nextWeather(G, outsideStorm) {
   const w = G.weather.type;
   if (w === "storm") { if (outsideStorm) { G.stats.storms++; bob(G, "stormEnd", 0); } G.weather = { type: "clear", t: 90 + R() * 80 }; }
-  else if (w === "dusty" && R() < 0.55) { G.weather = { type: "storm", t: 45 + R() * 30 }; bob(G, "stormWarn", 0); }
+  else if (w === "dusty" && R() < 0.55) { G.weather = { type: "storm", t: 45 + R() * 30 }; bob(G, "stormWarn", 0); if (G.layer === "surface") sfxEv(G, "marsWind"); }
   else if (w === "clear" && R() < 0.6) G.weather = { type: "dusty", t: 30 + R() * 25 };
   else G.weather = { type: "clear", t: 60 + R() * 60 };
 }
@@ -235,6 +265,7 @@ export function update(G, inp, dt) {
 
   // movement
   const mag = Math.min(1, Math.hypot(inp.x, inp.y));
+  T.moving = false;
   const jet = inp.jet && G.flags.jetpack && !G.inRover && G.en > 1;
   let speed = G.inRover ? 7.5 * (1 + 0.25 * (up.rover_speed || 0)) * (G.en <= 0 ? 0.25 : 1) : jet ? 7 : 4;
   if (storm) speed *= G.inRover ? 0.65 : 0.75;
@@ -243,6 +274,7 @@ export function update(G, inp, dt) {
     const sx = G.p.x, sy = G.p.y;
     move(G, L, Math.cos(ang) * speed * mag * dt, Math.sin(ang) * speed * mag * dt, jet);
     const moved = Math.hypot(G.p.x - sx, G.p.y - sy);
+    T.moving = moved > 0;
     G.stats.dist += moved;
     G.heading = ang;
     T.idle = 0;
@@ -263,7 +295,7 @@ export function update(G, inp, dt) {
     G.rad -= (shelter === "colony" && G.buildings.includes("bunker") ? 15 : 5) * dt;
     if (G.o2 > 0) G.hp += (shelter === "colony" && G.buildings.includes("greenhouse") ? 3 : 1.5) * dt;
   } else {
-    G.o2 += G.inRover ? 3 * dt : -0.6 * (E?.type === "leak" ? 2.5 : 1) * dt;
+    G.o2 += G.inRover ? 3 * dt : -0.6 * (E?.type === "leak" ? 2.5 : storm ? 1.25 : G.layer === "under" ? 0.85 : 1) * dt;
     if (outdoor && !night && !storm && !G.inRover) G.en += 0.25 * dt;
     if (night && outdoor && !G.inRover) { G.en -= 0.25 * dt; G.stats.nightTime += dt; }
   }
@@ -317,7 +349,7 @@ export function findNear(G, W) {
   [...L.nodes, ...G.tempNodes.filter((t) => t.layer === G.layer)].forEach((nd) => { if (nodeLeft(G, nd) > 0) push({ kind: "node", node: nd, label: `Mine ${ITEMS[nd.type].name}` }, nd.x, nd.y, 1.7); });
   L.pois.forEach((p) => {
     if (p.minStory !== undefined && G.story < p.minStory) return;
-    const lab = { cave: `Enter ${p.name}`, exit: "Climb back to the surface", signal: `Listen to ${p.name}`, egg: `Inspect: ${p.name}`, lab: "Use the lab terminal", secret: "Touch the machine core" }[p.type];
+    const lab = { cave: `Enter ${p.name}`, exit: "Climb back to the surface", signal: `Decode ${p.name}`, egg: `Inspect: ${p.name}`, lab: "Use the lab terminal", secret: "Touch the machine core" }[p.type];
     if (p.type === "science" && !G.scanned.includes(p.id)) push({ kind: "poi", poi: p, label: `Scan: ${p.name}` }, p.x, p.y, 2.4);
     else if (lab) push({ kind: "poi", poi: p, label: lab }, p.x, p.y, 2.4);
   });
@@ -377,10 +409,15 @@ export function interact(G, near, ui) {
     const dest = W[toLayer].pois.find((q) => q.id === p.link);
     G.layer = toLayer; G.p = { x: dest.x + 1.2, y: dest.y + 1.2 };
     if (toLayer === "under") G.visited.under = true;
+    sfxEv(G, "marsAirlock");
     bob(G, toLayer === "under" ? "cave" : "surface", 60);
     return;
   }
-  if (p.type === "signal") return dialog(G, [["bob", `Decoding ${p.name}...`], ["bob", SIGNALS[p.id]]]);
+  if (p.type === "signal") {
+    G.flags[`decoded_${p.id}`] = true;
+    sfxEv(G, "marsSignal");
+    return dialog(G, [["bob", `${p.name} recorded. Someone actually used the emergency channel for an emergency.`], ["bob", SIGNALS[p.id]]]);
+  }
   if (p.type === "science") {
     G.scanned.push(p.id); add(G, "credits", 50);
     dialog(G, [["bob", `Discovery: ${p.name}! +50 credits (${G.scanned.length}/12)`], ["andreea", p.fact]]);
@@ -407,7 +444,7 @@ const objDone = (G, o) => {
     case "have": return Object.entries(o.items).every(([k, v]) => count(G, k) >= v);
     case "craft": return (G.stats.crafted[o.item] || 0) > (G.missionBase.crafted?.[o.item] || 0);
     case "goto": return !!G.visited[o.poi];
-    case "visitAll": return o.pois.every((p) => G.visited[p]);
+    case "decode": return o.pois.every((p) => G.flags[`decoded_${p}`]);
     case "layer": return !!G.visited[o.layer];
     case "flag": return !!G.flags[o.flag];
     default: return false;
@@ -425,6 +462,7 @@ export function checkProgress(G) {
     Object.entries(m.reward).forEach(([k, v]) => add(G, k, v));
     if (m.effect === "rover") { const d = world(G).surface.pois.find((p) => p.id === "rover_depot"); G.flags.rover = true; G.rover = { x: d.x + 1.5, y: d.y + 1, h: 0 }; }
     G.story++; G.storyStarted = false;
+    sfxEv(G, "success");
     toast(G, `Mission complete: ${m.title}! +${m.reward.credits} credits`);
     dialog(G, m.outro);
   }
@@ -500,8 +538,14 @@ export function buy(G, item) {
 export function consumeItem(G, item) {
   const u = ITEMS[item].use;
   if (!u || count(G, item) <= 0) return false;
-  const full = (u.oxygen && G.o2 >= maxO2(G) - 1) || (u.health && G.hp >= 99 && G.emerg?.type !== "leak") || (u.energy && G.en >= 99) || (u.radiation && G.rad <= 1);
-  if (full) { toast(G, `${ITEMS[item].name}: that's already full!`); bob(G, "full", 30); return false; }
+  const useful = (u.oxygen && G.o2 < maxO2(G)) ||
+    (u.health && (G.hp < 100 || G.emerg?.type === "leak")) ||
+    (u.energy && G.en < 100) || (u.radiation && G.rad > 0);
+  if (!useful) {
+    toast(G, `${ITEMS[item].name} kept. No recovery needed.`);
+    bob(G, "full", 30);
+    return false;
+  }
   G.inv[item]--;
   if (u.oxygen) G.o2 = Math.min(maxO2(G), G.o2 + u.oxygen);
   if (u.health) { G.hp = Math.min(100, G.hp + u.health); if (G.emerg?.type === "leak") { G.emerg = null; toast(G, "Suit leak fixed!"); } }

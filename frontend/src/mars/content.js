@@ -144,10 +144,10 @@ export const FRAGMENTS = [
   { id: "frag3", fx: 0.55, fy: 0.82, layer: "under" },
 ];
 
-// Story missions. obj types: talk, have, craft, goto, visitAll, layer, flag
+// Story missions. obj types: talk, have, craft, goto, decode, layer, flag
 export const MISSIONS = [
-  { title: "Boots on Mars", obj: { type: "talk", npc: "queen" }, goal: "Talk to Queen Gratziella in the colony", reward: { credits: 100 },
-    intro: [["bob", "Welcome to EXPLORE MARS! Mars: cold, dusty and 225 million km from the nearest pizza. I love it."], ["bob", "Move with WASD / arrows or the joystick. Press E or the action button to interact. The Queen wants to see you."]],
+  { title: "Boots on Mars", obj: { type: "talk", npc: "queen" }, goal: "Follow the beacon to Queen Gratziella and interact", reward: { credits: 100 },
+    intro: [["bob", "Welcome to EXPLORE MARS! Mars: cold, dusty and 225 million km from the nearest pizza. I love it."], ["bob", "Move with WASD / arrows or the joystick. Press E or the action button to interact. Follow the gold beacon to the Queen. First contact, except the alien is your boss."]],
     outro: [["queen", "Cadet! Three months ago the Ares-7 expedition led by Dr. Lina Vega vanished. No signal, no trace."], ["queen", "You are our best hope to find them. But first, you need gear."], ["bob", "Best hope? We are doomed."]] },
   { title: "Gearing Up", obj: { type: "have", items: { iron: 5, silicon: 3 } }, goal: "Mine 5 iron and 3 silicon", reward: { credits: 80 },
     intro: [["goran", "Rocks with grey stripes are iron, the yellow shiny ones are silicon. Walk up to them and press E to mine."]],
@@ -158,13 +158,13 @@ export const MISSIONS = [
   { title: "Wheels", obj: { type: "goto", poi: "rover_depot" }, goal: "Reach the Rover Depot east of the colony", reward: { credits: 100 }, effect: "rover",
     intro: [["patrick", "There's an old rover at the depot to the east. If you can get there, it's yours!"]],
     outro: [["patrick", "She's all yours! Press R or the rover button to get in or out. The rover gives you oxygen but uses energy."], ["bob", "Finally. My tracks were getting tired of following you."]] },
-  { title: "Strange Signal", obj: { type: "goto", poi: "signal_a" }, goal: "Find the source of Signal Alpha", reward: { credits: 120 },
+  { title: "Strange Signal", obj: { type: "decode", pois: ["signal_a"] }, goal: "Reach Signal Alpha and interact to decode the recording", reward: { credits: 120 },
     intro: [["andreea", "The radar picked up a strange repeating signal north of the colony. It might be Ares-7!"]],
     outro: [["bob", "It's a beacon. Repeating... 'beep... beep... HELP... beep'. Okay, that last one was me."], ["andreea", "The signal points southwest, to the old Ares-7 camp!"]] },
   { title: "Ares-7 Camp", obj: { type: "goto", poi: "ares_camp" }, goal: "Search the abandoned Ares-7 camp", reward: { credits: 150 },
     intro: [["nova", "Cadet, the Ares-7 camp is southwest. Be careful, nobody has been there for months."]],
     outro: [["bob", "A logbook! Dr. Vega writes: 'The signals are not ours. Something is calling from underground.'"], ["bob", "Great. Mysterious underground calls. That never ends badly in movies."]] },
-  { title: "Echoes", obj: { type: "visitAll", pois: ["signal_b", "signal_c"] }, goal: "Track down Signal Beta and Signal Gamma", reward: { credits: 200 },
+  { title: "Echoes", obj: { type: "decode", pois: ["signal_b", "signal_c"] }, goal: "Decode both Signal Beta and Signal Gamma", reward: { credits: 200 },
     intro: [["andreea", "Two more signals appeared, far west and far southeast. Together they could tell us where the source is!"]],
     outro: [["andreea", "The three signals cross above a high plateau in the northeast mountains: the Ridge Outpost."], ["patrick", "The rover can't climb those cliffs. You'll need a jetpack!"]] },
   { title: "Lift Off", obj: { type: "craft", item: "jetpack" }, goal: "Print a Jetpack (titanium is found near mountains)", target: "fabricator", reward: { credits: 150 },
@@ -264,17 +264,19 @@ export const ACHIEVEMENTS = [
 ].map(([id, name, desc, check]) => ({ id, name, desc, check }));
 
 export const BOB_LINES = {
-  lowOxygen: ["Oxygen low! Breathing is kind of a requirement for humans.", "Your oxygen is lower than your exam score. Use a canister or get to a station!"],
+  broke: ["Your balance has achieved near-perfect vacuum.", "The one thing we cannot mine is your credit score.", "That is an excellent purchase in a universe where you have money."],
+  full: ["Supply saved. A rare victory for restraint.", "Life support is fine. Save it for your next brilliant decision.", "Emergency inventory is for emergencies. I checked the manual."],
+  lowOxygen: ["Oxygen low! Your lungs have requested a meeting. Use a canister or find shelter.", "Your oxygen is lower than your exam score. Use a canister or get to a station!"],
   lowEnergy: ["Energy low. I'd lend you mine but I'm using it to be fabulous.", "Battery almost empty. Recharge at the colony or use a battery!"],
   highRad: ["Radiation high! Get underground or inside. You're glowing, and not in a good way.", "Your Geiger counter is singing. That's a bad song."],
-  stormWarn: ["Dust storm incoming! The rover or a station would be nice right now."],
+  stormWarn: ["Visibility is about to match your judgment. Find a station or get inside the rover.", "Mars is sandblasting the neighborhood. Find shelter and watch your oxygen."],
   stormEnd: ["Storm's over. You survived! I had my farewell speech ready again."],
   night: ["Night time. -80°C. Cozy. Your heater will drink some energy.", "It's dark. If you see two glowing eyes, that's me. Probably."],
   dawn: ["Sunrise on Mars is blue! Fun fact: Martian sunsets are blue too."],
-  cave: ["Ooh, it's dark down here. I'm not scared. You're scared."],
+  cave: ["Welcome to the lava tube. Stay inside the lamp beam and try not to become a fossil.", "Atmosphere: quiet. Lighting: inadequate. Confidence: yours, unfortunately."],
   surface: ["Sunlight! Never thought I'd miss radiation."],
   mine: ["Nice swing. The rock never saw it coming.", "Another rock. Mars has about a quadrillion more."],
-  craft: ["Printed! The future is now, and it smells like hot plastic."],
+  craft: ["Printed. The engineering department would like to remind you that this is not edible.", "A functioning part on the first try. I had money on the second."],
   rover: ["Vroom vroom. Please keep your hands inside the vehicle.", "You drive like you answer quizzes. Fast and wrong."],
   jet: ["WHEEE! I mean... please be careful."],
   mountain: ["You lost a fight against a mountain. Upgrade from doors!", "That's a cliff. Even the rover says no. Try a jetpack."],

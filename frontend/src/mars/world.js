@@ -20,8 +20,8 @@ const ramp = (stops, t) => {
   }
   return stops[stops.length - 1][1];
 };
-const SURF = [[0, hex("#4a1a0c")], [0.25, hex("#7a2e16")], [0.45, hex("#b5532a")], [0.6, hex("#d98a55")], [0.7, hex("#9c5434")], [0.85, hex("#6e3a26")], [1, hex("#d8b8a0")]];
-const CAVE = [[0, hex("#120d16")], [0.5, hex("#1f1724")], [0.52, hex("#4a3a48")], [1, hex("#6d5a66")]];
+const SURF = [[0, hex("#462921")], [0.25, hex("#703e30")], [0.45, hex("#a76a49")], [0.6, hex("#c59065")], [0.7, hex("#8c5b47")], [0.85, hex("#69463d")], [1, hex("#b39682")]];
+const CAVE = [[0, hex("#161416")], [0.45, hex("#292327")], [0.52, hex("#53413c")], [1, hex("#92735e")]];
 
 const placePois = (layer, N) => POIS.filter((p) => (p.layer || "surface") === layer).map((p) => ({ ...p, layer, x: Math.round(p.fx * N) + 0.5, y: Math.round(p.fy * N) + 0.5 }));
 
@@ -72,6 +72,14 @@ function genSurface(pois, terraformed) {
     const Y = y / RES;
     const polar = Y < N * 0.09 ? 1 - Y / (N * 0.09) : 0;
     if (polar > 0 && fbm(x / 20, y / 20, 5) + polar * 0.6 > 0.75) c = [lerp(c[0], 235, 0.85), lerp(c[1], 225, 0.85), lerp(c[2], 220, 0.85)];
+    // Mineral bands and windblown sediment only affect the painted surface.
+    const flow = fbm(x / 52, y / 33, SEED + 5, 2);
+    const drift = Math.sin(y * 0.24 + x * 0.09 + flow * 9);
+    const strata = v > 0.68 ? Math.sin(v * 125) * 0.09 : drift * 0.04;
+    const sediment = (flow - 0.5) * 0.38 + strata;
+    c[0] *= 1 + sediment;
+    c[1] *= 1 + sediment * 0.88;
+    c[2] *= 1 + sediment * 0.62;
     if (terraformed) {
       if (v < 0.33) c = [40, 110, 170];
       else if (v < 0.5) c = [lerp(c[0], 120, 0.35), lerp(c[1], 150, 0.35), lerp(c[2], 70, 0.35)];
@@ -118,9 +126,14 @@ function paint(h, P, N, colorFn, blockFn) {
       const i = y * P + x, v = h[i];
       const dx = h[i + (x < P - 1 ? 1 : 0)] - h[i - (x > 0 ? 1 : 0)];
       const dy = h[i + (y < P - 1 ? P : 0)] - h[i - (y > 0 ? P : 0)];
-      const shade = clamp(1 - (dx + dy) * 16, 0.6, 1.4) * (0.95 + hash2(x, y, 1) * 0.1);
+      const grain = hash2(x, y, 1);
+      const shade = clamp(1 - (dx * 0.72 + dy) * 25, 0.43, 1.44) * (0.93 + grain * 0.14);
       const c = colorFn(x, y, v);
-      img.data.set([clamp(c[0] * shade, 0, 255), clamp(c[1] * shade, 0, 255), clamp(c[2] * shade, 0, 255), 255], i * 4);
+      const offset = i * 4;
+      img.data[offset] = c[0] * shade;
+      img.data[offset + 1] = c[1] * shade;
+      img.data[offset + 2] = c[2] * shade;
+      img.data[offset + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
   }
@@ -157,7 +170,7 @@ export function getWorld(terraformed = false) {
   if (cache[key]) return cache[key];
   const sp = placePois("surface", SIZES.surface), up = placePois("under", SIZES.under);
   const surface = { ...genSurface(sp, terraformed), pois: sp };
-  const under = { ...genUnder(up), pois: up };
+  const under = cache.n?.under || { ...genUnder(up), pois: up };
   surface.nodes = cache.n?.surface.nodes || genNodes("surface", surface, sp);
   under.nodes = cache.n?.under.nodes || genNodes("under", under, up);
   const pick = (c) => ({ ...c, layer: c.layer || "surface", x: c.fx * SIZES[c.layer || "surface"], y: c.fy * SIZES[c.layer || "surface"] });

@@ -56,8 +56,10 @@ export function loadGame(name) {
   return G;
 }
 export const hasSave = () => !!localStorage.getItem(SAVE_KEY);
-export const deleteSave = () => localStorage.removeItem(SAVE_KEY);
+let blockSave = false;
+export const deleteSave = () => { blockSave = true; localStorage.removeItem(SAVE_KEY); };
 export function saveGame(G) {
+  if (blockSave || !G) return;
   const { tmp, ...rest } = G;
   rest.fogData = Object.fromEntries(Object.entries(tmp.fog).map(([k, a]) => [k, Array.from(a).join("")]));
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(rest)); } catch { /* storage full */ }

@@ -18,6 +18,16 @@ Cartoon game for middle-school kids, in English. B.O.B., a sarcastic robot, intr
 - Bad ending: large glowing flower, 5 emotional B.O.B. lines, tears
 - Good ending: new Explore screen (7 places on the Mars/Gratziella World map with facts and B.O.B. jokes; 4 needed before meeting the colony)
 
+## Iteration 3 (2026-06): EXPLORE MARS update
+- New mode in src/mars/: a 2D top-down open world drawn on canvas (Mars surface 180x180 tiles + underground layer 120x120), generated from a fixed seed with mountains, craters, polar ice, roads, caves and tunnels
+- 15 story missions (the missing Ares-7 expedition, Dr. Vega, the B.O.B. twist, The Hollow, 3 endings + a secret ending), 30 side quests from 7 NPCs, 12 science discoveries, 12 relics, 5 Easter eggs, 25 achievements
+- Mining, a 3D printer, upgrades, a market with daily prices, 7 colony buildings with production every sol, a habitat to decorate and sleep in
+- Oxygen, health, energy and radiation, day/night, weather and dust storms, emergencies (solar flare, meteors, rescue, suit leak)
+- Rover, jetpack, world map with fog and waypoints, navigation arrow, inventory, autosave to localStorage, touch joystick
+- Unlocks after winning Level 3 (localStorage flag); entry from the credits screen and the title screen
+- No multiplayer (user's choice)
+
 ## Backlog
 - P1: keyboard play for the puzzle, save progress when the page reloads, retry Level 3 without starting over, ask before publishing a name to the leaderboard, check scores on the server
-- P2: team mode (up to 4 players), more mission trade-offs (budget and power), difficulty levels
+- P1: messages when there aren't enough credits or resources, block using supplies when the stat is already full, Queen as the preferred first talk target
+- P2: real-time multiplayer / shared colony, team mode (up to 4 players), more mission trade-offs (budget and power), difficulty levels

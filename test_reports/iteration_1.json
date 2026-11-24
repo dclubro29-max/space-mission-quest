@@ -1,0 +1,37 @@
+{
+  "summary": "Frontend-only Playwright testing of EXPLORE MARS (desktop 1920x1080, mobile 390x760 with touch emulation) plus a check that the original story still works. Working: unlock gating, loading and game screens, first-run B.O.B. dialog, WASD movement and the in-game clock, mission 1 -> MISSION 2/15 Gearing Up (+100 credits), NPC panels for Queen, Goran and Andreea with accept-q1 and its toast, the Quest Log story and side tabs (30 rows, statuses shown), and the craft panel (8 recipes) with its Upgrades tab (7 upgrades). Also working: the Rover Garage opens the upgrades panel, the market sell/buy tabs, buy-o2_canister once credits are high enough (160 -> 97), the build panel (7 buildings), habitat wall/floor swatches and the sleep-btn day guard, and the map (fog, waypoint toast, clear-waypoint-btn, surface/underground tabs). Bag use-o2_canister, the trophies panel (25 achievements), all hud buttons, Esc closing panels, the game pausing while a panel is open, menu save with toast, and menu exit to title with position, story and credits restored also work. Mobile joystick movement and mars-action-btn work. The original start-game-btn intro dialogue works. FAILED: 'Restart Explore Mars' (menu-reset-btn, 2 taps) does NOT erase progress. Mobile and desktop: the interact prompt is off-center and clipped. Mobile: the prompt and B.O.B. toast overlap the mission tracker.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "MenuPanel reset (Panels.jsx:167 + MarsGame.jsx:81-84)", "issue": "Restart Explore Mars does not reset progress. After the 2nd tap the page reloads, but the save is re-written: still MISSION 2/15 with 160 credits. Cause: deleteSave() is followed by window.location.reload(), and MarsGame's beforeunload handler (and the unmount cleanup save()) calls saveGame(G.current), which re-creates 'explore-mars-save-v1'. Fix: set a flag (e.g. G.tmp.noSave=true, or a module-level 'resetting' flag checked in saveGame) before deleteSave, or remove the listeners before reloading.", "selector": "[data-testid='menu-reset-btn']", "priority": "HIGH"},
+      {"component": "Interact prompt (App.css .mars-prompt)", "issue": "The prompt is not centered. It starts at the screen center and extends to the right. On mobile 390px it overflows off-screen ('Talk to Queen Gratzie...' is clipped; measured box x=194..430). With touch emulation this overflow also makes the page scroll sideways, so modals render at x=-27. Cause: 'animation: float' keyframes set transform (translateY/rotate), which overrides 'transform: translateX(-50%)'. Fix: center without transform (left:0;right:0;margin:0 auto;width:fit-content), or put the float animation on an inner wrapper.", "selector": "[data-testid='mars-interact-btn']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Market buy with too few credits", "issue": "At the start, credits are 60 and the Oxygen Canister costs 63 cr, so the buy fails silently (only sfx.fail, no toast or message). Add a 'Not enough credits' toast. The same applies to craft/build/upgrade failures.", "affected_selectors": ["[data-testid='buy-o2_canister']"]},
+      {"flow": "Bag supplies", "issue": "use-o2_canister (and other supplies) can be used when oxygen is already full (100/100), wasting the item with no feedback. Consider blocking it or showing a toast.", "affected_selectors": ["[data-testid='use-o2_canister']"]}
+    ],
+    "design_issues": [
+      {"screen": "Mobile 390x760 game HUD", "issues": ["Under 640px, .mars-prompt (bottom:160px) and .mars-bob (bottom:160px) overlap .mars-tracker (bottom:120px, ~84px tall). Measured: prompt y=538-592 vs tracker y=555-640.", "Walking up from spawn reaches the Colony Hub before the Queen (the hub sits between spawn and the Queen), so mission 1 'walk up and press E' first opens the build panel. Consider placing the Queen beside the hub or showing her as the preferred target for the talk objective."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "HIGH: Fix menu-reset-btn so it really erases the save. Stop the beforeunload/unmount saveGame from re-writing after deleteSave().",
+    "MEDIUM: Fix .mars-prompt centering. The float animation overrides translateX(-50%), so the prompt overflows off-screen on mobile.",
+    "MEDIUM: On mobile (<640px), move the prompt and B.O.B. toast so they don't overlap the mission tracker.",
+    "LOW: Add 'Not enough credits/resources' feedback for buy, craft, build and upgrade failures. Starting credits (60) are below the O2 canister price (63).",
+    "LOW: Prevent wasting consumables when the stat is already full."
+  ],
+  "critical_code_review_comments": [
+    "saveGame is called from several places (interval, visibilitychange, beforeunload, unmount, exit). Any 'reset' path needs a guard flag.",
+    "MarsGame keyboard useEffect has no dependency array, so window listeners are re-bound on every render (~7 times per second due to the HUD tick). It works, but it is wasteful. Use refs and an empty dependency array.",
+    "HUD tick setState every 150ms re-renders the whole MarsGame tree (Hud, Controls, panels). Acceptable, but memoize the panels."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "90%"},
+  "seed_data_creation": "None. Only browser localStorage in the test browser was used (explore-mars-unlocked, explore-mars-save-v1).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Navigation helper: dispatch a document 'visibilitychange' event to force saveGame, then read JSON localStorage 'explore-mars-save-v1'.p for the player position (tiles). The colony center was (90.5, 90.5) and spawn (90.5, 93.5). Move 4 tiles/s by holding WASD for dist/4 seconds. Good E spots (offsets from the colony center): queen (0,-1.6), goran (6,1.6), andreea (-2,-3.3), fabricator (-3,-0.6), market (3,-0.6), hub (0,1.6), garage (3,3), habitat (-3,3). Dialogs may chain after an NPC panel closes, so drain mars-dialog in a few passes with waits. Mobile touch: use a new context with has_touch=True and CDP Input.dispatchTouchEvent on mars-joystick. The credits explore-mars-btn was only code-reviewed (Credits.jsx:70, outcome==='win'), not tested end to end.",
+  "rca of the issue": "Reset bug: Panels.jsx MenuPanel onClick -> deleteSave(); window.location.reload(). Reloading fires 'beforeunload' -> MarsGame save() -> saveGame(G.current) -> localStorage.setItem('explore-mars-save-v1', ...). The save is restored on next entry. Repro: play mission 1, Menu -> Restart twice -> Explore Mars -> still MISSION 2/15 with 160 credits and no intro dialog."
+}
